@@ -166,7 +166,7 @@ export class CronScheduler {
   // 计算下次执行时间
   private getNextRunTime(cronParts: any): Date {
     const now = new Date();
-    let next = new Date(now);
+    const next = new Date(now);
 
     // 重置秒和毫秒
     next.setSeconds(0, 0);

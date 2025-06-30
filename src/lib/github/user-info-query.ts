@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 export const queryUserInfo = `query queryRepoInfo($login: String!) {
 	user(login: $login) {
     login,

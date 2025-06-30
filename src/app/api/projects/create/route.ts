@@ -159,7 +159,7 @@ export async function POST(request: NextRequest) {
 function validateAndCleanGitHubUrl(url: string): string | null {
   try {
     // 去掉末尾的 .git
-    let cleanedUrl = url.replace(/\.git$/, '');
+    const cleanedUrl = url.replace(/\.git$/, '');
     
     // 验证是否是GitHub URL
     const githubUrlPattern = /^https?:\/\/github\.com\/[^\/]+\/[^\/]+$/;
@@ -169,6 +169,7 @@ function validateAndCleanGitHubUrl(url: string): string | null {
     
     return cleanedUrl;
   } catch (error) {
+    logger.error('Error validating and cleaning GitHub URL:', error);
     return null;
   }
 }

@@ -369,7 +369,7 @@ export class TaskScheduler {
         logger.debug(`Task runner result:`, result);
         
         // 记录每个任务的完成状态
-        tasks.forEach((task, index) => {
+        tasks.forEach((task) => {
           results.push({ task: task.name, status: 'completed' });
         });
       } catch (error) {

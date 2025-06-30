@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import emojiRegex from "emoji-regex";
 
 export const queryRepoInfo = `query getRepoInfo($owner: String!, $name: String!) {

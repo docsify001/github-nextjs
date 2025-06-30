@@ -48,7 +48,7 @@ const formSchema = z.object({
   overrideDescription: z.coerce.boolean().nullable(),
   url: z.string().url().nullable().or(z.literal("")),
   overrideURL: z.coerce.boolean().nullable(),
-  status: z.enum(PROJECT_STATUSES).default("active"),
+  status: z.enum(PROJECT_STATUSES),
   logo: z.string().nullable(),
   comments: z.string().nullable(),
   twitter: z.string().nullable(),

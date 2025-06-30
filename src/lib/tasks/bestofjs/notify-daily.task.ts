@@ -96,7 +96,7 @@ async function notifySlack({
   });
 
   if (dryRun) {
-    console.info("[DRY RUN] No message sent to Slack", { text, attachments }); //eslint-disable-line no-console
+    console.info("[DRY RUN] No message sent to Slack", { text, attachments }); 
     return;
   }
 

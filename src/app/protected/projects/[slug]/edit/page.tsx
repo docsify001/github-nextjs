@@ -1,8 +1,8 @@
 import { getAllTags } from "@/drizzle/projects";
 import { ProjectLogo } from "@/components/projects/project-logo";
-import { ProjectService } from "@/drizzle/projects";
 import { ViewTags } from "../view-tags";
 import { ProjectForm } from "./project-form";
+import { projectService } from "@/lib/db";
 
 type PageProps = {
   params: Promise<{
