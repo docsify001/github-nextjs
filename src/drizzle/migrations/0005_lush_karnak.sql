@@ -1,0 +1,1 @@
+ALTER TABLE "repos" ADD COLUMN "latest_release_description_zh" text;

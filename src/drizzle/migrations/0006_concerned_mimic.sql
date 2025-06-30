@@ -1,0 +1,1 @@
+ALTER TABLE "task_definitions" ADD COLUMN "is_weekly" boolean DEFAULT false NOT NULL;
