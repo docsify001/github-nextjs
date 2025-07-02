@@ -5,14 +5,18 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/auth-context";
 import { useApiClient } from "@/lib/api/api-client";
+import { useNotification } from "@/components/notification";
+import { ErrorHandler } from "@/lib/error/error-handler";
 import { useState } from "react";
 
 export default function AuthStatusPage() {
   const { user, loading, error: authError } = useAuth();
   const apiClient = useApiClient();
+  const { addNotification } = useNotification();
   const [testResults, setTestResults] = useState<{
     tasks?: { success: boolean; message: string };
     scheduler?: { success: boolean; message: string };
+    error?: { success: boolean; message: string };
   }>({});
 
   const testTasksApi = async () => {
@@ -35,6 +39,29 @@ export default function AuthStatusPage() {
         message: result.success ? '调度器状态 API 调用成功！认证正常工作。' : result.error || '调度器状态 API 调用失败'
       }
     }));
+  };
+
+  const testErrorHandling = async () => {
+    try {
+      // 故意触发一个错误
+      throw new Error('这是一个测试错误，用于验证错误处理系统');
+    } catch (error) {
+      const errorInfo = ErrorHandler.handleGenericError(error, '测试操作');
+      addNotification({
+        type: errorInfo.type,
+        title: errorInfo.title,
+        message: errorInfo.message,
+        action: errorInfo.action,
+      });
+      
+      setTestResults(prev => ({
+        ...prev,
+        error: {
+          success: false,
+          message: '错误处理测试完成，请查看右上角的通知'
+        }
+      }));
+    }
   };
 
   if (loading) {
@@ -147,6 +174,24 @@ export default function AuthStatusPage() {
               {testResults.scheduler && (
                 <div className={`p-2 rounded text-sm ${testResults.scheduler.success ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
                   {testResults.scheduler.message}
+                </div>
+              )}
+            </div>
+            
+            <div>
+              <h4 className="font-semibold mb-2">测试错误处理</h4>
+              <p className="text-sm text-gray-600 mb-2">
+                点击下面的按钮测试错误处理系统
+              </p>
+              <Button 
+                onClick={testErrorHandling}
+                className="mb-2"
+              >
+                测试错误处理
+              </Button>
+              {testResults.error && (
+                <div className={`p-2 rounded text-sm ${testResults.error.success ? 'bg-green-50 text-green-700' : 'bg-yellow-50 text-yellow-700'}`}>
+                  {testResults.error.message}
                 </div>
               )}
             </div>

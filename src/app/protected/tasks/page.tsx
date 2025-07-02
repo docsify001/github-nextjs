@@ -9,6 +9,8 @@ import { Label } from '@/components/ui/label';
 import { Play, Square, Clock, CheckCircle, XCircle, AlertCircle, AlertTriangle } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
+import { useNotification } from '@/components/notification';
+import { ErrorHandler } from '@/lib/error/error-handler';
 
 interface TaskDefinition {
   id: string;
@@ -45,6 +47,7 @@ interface TaskExecution {
 export default function TasksPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
+  const { addNotification } = useNotification();
   const [tasks, setTasks] = useState<TaskDefinition[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -62,6 +65,13 @@ export default function TasksPage() {
       const response = await fetch('/api/tasks');
       
       if (response.status === 401) {
+        const errorInfo = ErrorHandler.handleAuthError({ message: '认证失败' });
+        addNotification({
+          type: errorInfo.type,
+          title: errorInfo.title,
+          message: errorInfo.message,
+          action: errorInfo.action,
+        });
         setError('认证失败，请重新登录');
         router.push('/auth/login');
         return;
@@ -80,9 +90,23 @@ export default function TasksPage() {
         });
         setRunningTasks(running);
       } else {
+        const errorInfo = ErrorHandler.handleApiError({ message: data.error }, '获取任务列表');
+        addNotification({
+          type: errorInfo.type,
+          title: errorInfo.title,
+          message: errorInfo.message,
+          action: errorInfo.action,
+        });
         setError(data.error || '获取任务列表失败');
       }
     } catch (err) {
+      const errorInfo = ErrorHandler.handleApiError(err, '获取任务列表');
+      addNotification({
+        type: errorInfo.type,
+        title: errorInfo.title,
+        message: errorInfo.message,
+        action: errorInfo.action,
+      });
       setError('网络错误，请检查连接');
     } finally {
       setLoading(false);

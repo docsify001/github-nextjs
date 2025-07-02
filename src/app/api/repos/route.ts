@@ -55,6 +55,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, data: { project } });
     } catch (error) {
       console.error('Error executing task:', error);
+      
+      // 处理数据库约束错误
+      if (error instanceof Error && error.message.includes('duplicate key')) {
+        return NextResponse.json(
+          { success: false, error: '项目已存在，请检查 GitHub URL' },
+          { status: 400 }
+        );
+      }
+      
+      // 处理其他错误
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       return NextResponse.json(
         { success: false, error: errorMessage },

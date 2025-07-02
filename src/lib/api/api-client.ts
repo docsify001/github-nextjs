@@ -1,4 +1,6 @@
 import { useAuth } from '@/contexts/auth-context';
+import { useNotification } from '@/components/notification';
+import { ErrorHandler } from '@/lib/error/error-handler';
 
 interface ApiResponse<T = any> {
   success: boolean;
@@ -93,6 +95,7 @@ export const apiClient = new ApiClient();
 // React Hook 用于在组件中使用 API 客户端
 export function useApiClient() {
   const { user } = useAuth();
+  const { addNotification } = useNotification();
 
   const authenticatedRequest = async <T>(
     endpoint: string,
@@ -100,13 +103,51 @@ export function useApiClient() {
   ): Promise<ApiResponse<T>> => {
     // 如果用户未登录，直接返回认证错误
     if (!user) {
+      const errorInfo = ErrorHandler.handleAuthError({ message: '用户未登录' });
+      addNotification({
+        type: errorInfo.type,
+        title: errorInfo.title,
+        message: errorInfo.message,
+        action: errorInfo.action,
+      });
       return {
         success: false,
         error: '用户未登录',
       };
     }
 
-    return apiClient.request<T>(endpoint, options);
+    try {
+      const result = await apiClient.request<T>(endpoint, options);
+      
+      // 如果请求失败，显示错误通知
+      if (!result.success) {
+        const errorInfo = ErrorHandler.handleApiError(
+          { message: result.error, status: 400 },
+          'API 请求'
+        );
+        addNotification({
+          type: errorInfo.type,
+          title: errorInfo.title,
+          message: errorInfo.message,
+          action: errorInfo.action,
+        });
+      }
+      
+      return result;
+    } catch (error) {
+      const errorInfo = ErrorHandler.handleApiError(error, 'API 请求');
+      addNotification({
+        type: errorInfo.type,
+        title: errorInfo.title,
+        message: errorInfo.message,
+        action: errorInfo.action,
+      });
+      
+      return {
+        success: false,
+        error: errorInfo.message,
+      };
+    }
   };
 
   return {

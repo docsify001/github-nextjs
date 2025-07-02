@@ -78,6 +78,18 @@
 - 提供优雅的错误显示和恢复机制
 - 区分认证错误和一般应用错误
 
+#### 异常处理系统
+- 创建了 `src/lib/error/error-handler.ts` 异常处理工具
+- 支持多种错误类型的识别和处理
+- 提供统一的错误信息格式
+- 自动显示用户友好的错误提示
+
+#### 通知系统
+- 创建了 `src/components/notification.tsx` 通知组件
+- 支持成功、错误、警告、信息四种通知类型
+- 自动显示和隐藏通知
+- 支持通知操作按钮
+
 ## 使用方法
 
 ### 前端页面访问
@@ -91,21 +103,43 @@
 ```javascript
 import { useAuth } from '@/contexts/auth-context';
 import { useApiClient } from '@/lib/api/api-client';
+import { useNotification } from '@/components/notification';
+import { ErrorHandler } from '@/lib/error/error-handler';
 
 function MyComponent() {
   const { user, loading, error } = useAuth();
   const apiClient = useApiClient();
+  const { addNotification } = useNotification();
 
   // 使用认证状态
   if (loading) return <div>加载中...</div>;
   if (!user) return <div>需要登录</div>;
 
-  // 使用 API 客户端
+  // 使用 API 客户端（自动处理错误）
   const handleApiCall = async () => {
     const result = await apiClient.get('/api/tasks');
-    if (!result.success) {
-      // 自动处理认证错误
-      console.error(result.error);
+    if (result.success) {
+      addNotification({
+        type: 'success',
+        title: '操作成功',
+        message: '数据获取成功',
+      });
+    }
+  };
+
+  // 手动处理异常
+  const handleError = async () => {
+    try {
+      // 可能出错的操作
+      throw new Error('测试错误');
+    } catch (error) {
+      const errorInfo = ErrorHandler.handleGenericError(error, '测试操作');
+      addNotification({
+        type: errorInfo.type,
+        title: errorInfo.title,
+        message: errorInfo.message,
+        action: errorInfo.action,
+      });
     }
   };
 }
