@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/drizzle/database';
-import { TaskScheduler } from '@/lib/tasks/scheduler';
+import { CronerScheduler } from '@/lib/tasks/croner-scheduler';
 import { verifyApiAuth } from '@/lib/auth/auth-utils';
 
 // 获取任务列表
@@ -15,12 +15,12 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const scheduler = new TaskScheduler(db);
+    const scheduler = new CronerScheduler(db);
     await scheduler.initializeTaskDefinitions();
     
     const tasks = await scheduler.getTaskDefinitions();
     const tasksWithStatus = await Promise.all(
-      tasks.map(async (task) => {
+      tasks.map(async (task: any) => {
         const status = await scheduler.getTaskStatus(task.id);
         const executions = await scheduler.getTaskExecutions(task.id, 5);
         return {
@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const scheduler = new TaskScheduler(db);
+    const scheduler = new CronerScheduler(db);
     const executionId = await scheduler.executeTask(taskDefinitionId, triggeredBy);
 
     return NextResponse.json({ success: true, data: { executionId } });

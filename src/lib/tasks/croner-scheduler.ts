@@ -1,20 +1,21 @@
-import { eq, desc } from "drizzle-orm";
-import { schema } from "@/drizzle/database";
-import { createConsola } from "consola";
-import { Task } from "./task-types";
-import { buildStaticApiTask } from "./bestofjs/build-static-api.task";
-import { createTaskRunner } from "./task-runner";
-import { updateGitHubDataTask } from "./bestofjs/update-github-data.task";
-import { updateBundleSizeTask } from "./bestofjs/update-bundle-size.task";
-import { updatePackageDataTask } from "./bestofjs/update-package-data.task";
-import { buildMonthlyRankingsTask } from "./bestofjs/build-monthly-rankings.task";
-import { triggerMonthlyFinishedTask } from "./bestofjs/trigger-monthly-finished.task";
-import { buildWeeklyRankingsTask } from "./bestofjs/build-weekly-rankings.task";
-import { triggerWeeklyFinishedTask } from "./bestofjs/trigger-weekly-finished.task";
-import { buildDailyDataTask } from "./bestofjs/build-daily-data.task";
-import { notifyDailyTask } from "./bestofjs/notify-daily.task";
+import { Cron } from 'croner';
+import { eq, desc } from 'drizzle-orm';
+import { schema } from '@/drizzle/database';
+import { createConsola } from 'consola';
+import { Task } from './task-types';
+import { buildStaticApiTask } from './bestofjs/build-static-api.task';
+import { createTaskRunner } from './task-runner';
+import { updateGitHubDataTask } from './bestofjs/update-github-data.task';
+import { updateBundleSizeTask } from './bestofjs/update-bundle-size.task';
+import { updatePackageDataTask } from './bestofjs/update-package-data.task';
+import { buildMonthlyRankingsTask } from './bestofjs/build-monthly-rankings.task';
+import { triggerMonthlyFinishedTask } from './bestofjs/trigger-monthly-finished.task';
+import { buildWeeklyRankingsTask } from './bestofjs/build-weekly-rankings.task';
+import { triggerWeeklyFinishedTask } from './bestofjs/trigger-weekly-finished.task';
+import { buildDailyDataTask } from './bestofjs/build-daily-data.task';
+import { notifyDailyTask } from './bestofjs/notify-daily.task';
 
-// 创建logger实例，确保日志能正确输出
+// 创建logger实例
 const logger = createConsola({
   level: 4, // 设置为debug级别
   formatOptions: {
@@ -49,9 +50,11 @@ export interface TaskExecution {
   createdAt: Date;
 }
 
-export class TaskScheduler {
+export class CronerScheduler {
   private db: any;
   private runningTasks: Map<string, Promise<any>> = new Map();
+  private cronJobs: Map<string, Cron> = new Map();
+  private isRunning = false;
 
   constructor(db: any) {
     this.db = db;
@@ -116,6 +119,89 @@ export class TaskScheduler {
         });
         logger.info(`Created task definition: ${task.name}`);
       }
+    }
+  }
+
+  // 启动定时任务调度器
+  async start() {
+    if (this.isRunning) {
+      logger.warn('Croner scheduler is already running');
+      return;
+    }
+
+    this.isRunning = true;
+    logger.info('Starting croner scheduler...');
+
+    // 初始化任务定义
+    await this.initializeTaskDefinitions();
+
+    // 获取所有启用的任务
+    const tasks = await this.getTaskDefinitions();
+    const enabledTasks = tasks.filter(task => task.isEnabled && task.cronExpression);
+
+    // 为每个任务创建 cron job
+    for (const task of enabledTasks) {
+      this.scheduleTask(task);
+    }
+
+    logger.info(`Croner scheduler started with ${enabledTasks.length} tasks`);
+  }
+
+  // 停止定时任务调度器
+  stop() {
+    if (!this.isRunning) {
+      logger.warn('Croner scheduler is not running');
+      return;
+    }
+
+    this.isRunning = false;
+    
+    // 停止所有 cron jobs
+    for (const [taskId, cronJob] of this.cronJobs) {
+      cronJob.stop();
+      logger.info(`Stopped cron job for task: ${taskId}`);
+    }
+    this.cronJobs.clear();
+
+    logger.info('Croner scheduler stopped');
+  }
+
+  // 为单个任务创建 cron job
+  private scheduleTask(task: TaskDefinition) {
+    if (!task.cronExpression) {
+      return;
+    }
+
+    try {
+      // 使用 croner 创建定时任务
+      const cronJob = new Cron(task.cronExpression, {
+        timezone: 'Asia/Shanghai', // 使用中国时区
+        maxRuns: Infinity, // 无限运行
+        catch: true, // 捕获错误
+      }, async () => {
+        try {
+          logger.info(`Executing scheduled task: ${task.name}`);
+          await this.executeTask(task.id, 'system');
+          logger.info(`Scheduled task completed: ${task.name}`);
+        } catch (error) {
+          logger.error(`Scheduled task failed: ${task.name}`, error);
+        }
+      });
+
+      this.cronJobs.set(task.id, cronJob);
+      
+      // 更新任务状态中的下次执行时间
+      const nextRun = cronJob.nextRun();
+      if (nextRun) {
+        this.upsertTaskStatus(task.id, {
+          nextRunAt: nextRun,
+        });
+      }
+
+      logger.info(`Scheduled task ${task.name} with cron expression: ${task.cronExpression}`);
+      logger.info(`Next run for ${task.name}: ${nextRun?.toISOString()}`);
+    } catch (error) {
+      logger.error(`Failed to schedule task ${task.name}:`, error);
     }
   }
 
@@ -205,9 +291,9 @@ export class TaskScheduler {
   // 停止任务
   async stopTask(taskDefinitionId: string) {
     const isRunning = this.runningTasks.has(taskDefinitionId);
-    // if (!isRunning) {
-    //   throw new Error('Task is not running');
-    // }
+    if (!isRunning) {
+      throw new Error('Task is not running');
+    }
 
     // 更新执行记录状态
     const status = await this.getTaskStatus(taskDefinitionId);
@@ -241,6 +327,34 @@ export class TaskScheduler {
         updatedAt: new Date(),
       })
       .where(eq(schema.taskDefinitions.id, taskDefinitionId));
+
+    // 如果启用了任务，重新调度
+    if (enabled) {
+      const task = await this.db
+        .select()
+        .from(schema.taskDefinitions)
+        .where(eq(schema.taskDefinitions.id, taskDefinitionId))
+        .limit(1);
+
+      if (task[0] && task[0].cronExpression) {
+        // 停止现有的 cron job
+        const existingJob = this.cronJobs.get(taskDefinitionId);
+        if (existingJob) {
+          existingJob.stop();
+          this.cronJobs.delete(taskDefinitionId);
+        }
+
+        // 重新调度任务
+        this.scheduleTask(task[0]);
+      }
+    } else {
+      // 如果禁用了任务，停止 cron job
+      const existingJob = this.cronJobs.get(taskDefinitionId);
+      if (existingJob) {
+        existingJob.stop();
+        this.cronJobs.delete(taskDefinitionId);
+      }
+    }
 
     logger.info(`Task ${enabled ? 'enabled' : 'disabled'}: ${taskDefinitionId}`);
   }
@@ -339,13 +453,11 @@ export class TaskScheduler {
     if(taskDef.name === "process-repo-assets") {
       logger.info(`Running process-repo-assets task sequence`);
       tasks.push(
-        // buildStaticApiTask, // 构建静态API
         updateGitHubDataTask, // 更新GitHub数据
       );
     } else if(taskDef.name === "daily-update") {
       logger.info(`Running daily-update task sequence`);
       tasks.push(
-        // buildStaticApiTask,
         buildDailyDataTask, // 构建每日数据，包括GitHub数据、贡献者数量、快照记录、数据库记录、webhook回调，每条记录发送一次。
         notifyDailyTask, // 发送每日通知
       );
@@ -521,5 +633,36 @@ export class TaskScheduler {
   // 获取正在运行的任务
   getRunningTasks(): string[] {
     return Array.from(this.runningTasks.keys());
+  }
+
+  // 获取调度器状态
+  getStatus() {
+    return {
+      isRunning: this.isRunning,
+      scheduledTasks: Array.from(this.cronJobs.keys()),
+      taskCount: this.cronJobs.size,
+      runningTasks: this.getRunningTasks(),
+    };
+  }
+
+  // 重新加载任务配置
+  async reloadTasks() {
+    logger.info('Reloading task configurations...');
+    
+    // 停止所有现有的 cron jobs
+    for (const [taskId, cronJob] of this.cronJobs) {
+      cronJob.stop();
+    }
+    this.cronJobs.clear();
+
+    // 重新获取任务定义并调度
+    const tasks = await this.getTaskDefinitions();
+    const enabledTasks = tasks.filter(task => task.isEnabled && task.cronExpression);
+
+    for (const task of enabledTasks) {
+      this.scheduleTask(task);
+    }
+
+    logger.info(`Reloaded ${enabledTasks.length} tasks`);
   }
 } 

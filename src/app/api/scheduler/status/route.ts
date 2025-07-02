@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/drizzle/database';
-import { TaskScheduler } from '@/lib/tasks/scheduler';
-import { CronScheduler } from '@/lib/tasks/cron-scheduler';
+import { CronerScheduler } from '@/lib/tasks/croner-scheduler';
 import { verifyApiAuth } from '@/lib/auth/auth-utils';
 
 export async function GET(request: NextRequest) {
@@ -15,16 +14,15 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const taskScheduler = new TaskScheduler(db);
-    const cronScheduler = new CronScheduler(taskScheduler);
+    const scheduler = new CronerScheduler(db);
 
-    const tasks = await taskScheduler.getTaskDefinitions();
-    const runningTasks = taskScheduler.getRunningTasks();
-    const cronStatus = cronScheduler.getStatus();
+    const tasks = await scheduler.getTaskDefinitions();
+    const runningTasks = scheduler.getRunningTasks();
+    const cronStatus = scheduler.getStatus();
 
     const tasksWithStatus = await Promise.all(
-      tasks.map(async (task) => {
-        const status = await taskScheduler.getTaskStatus(task.id);
+      tasks.map(async (task: any) => {
+        const status = await scheduler.getTaskStatus(task.id);
         return {
           ...task,
           status,

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/drizzle/database';
-import { TaskScheduler } from '@/lib/tasks/scheduler';
+import { CronerScheduler } from '@/lib/tasks/croner-scheduler';
 import { verifyApiAuth } from '@/lib/auth/auth-utils';
 
 export async function POST(
@@ -26,7 +26,7 @@ export async function POST(
       );
     }
 
-    const scheduler = new TaskScheduler(db);
+    const scheduler = new CronerScheduler(db);
     await scheduler.stopTask(id);
 
     return NextResponse.json({ success: true, message: 'Task stopped successfully' });

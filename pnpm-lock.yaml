@@ -80,6 +80,9 @@ importers:
       consola:
         specifier: ^3.4.2
         version: 3.4.2
+      croner:
+        specifier: ^9.1.0
+        version: 9.1.0
       date-fns:
         specifier: ^4.1.0
         version: 4.1.0
@@ -2014,6 +2017,10 @@ packages:
 
   core-util-is@1.0.3:
     resolution: {integrity: sha512-ZQBvi1DcpJ4GDqanjucZ2Hj3wEO5pZDS89BWbkcrvdxksJorwUDDZamX9ldFkp9aw2lmBDLgkObEA4DWNJ9FYQ==}
+
+  croner@9.1.0:
+    resolution: {integrity: sha512-p9nwwR4qyT5W996vBZhdvBCnMhicY5ytZkR4D1Xj0wuTDEiMnjwR57Q3RXYY/s0EpX6Ay3vgIcfaR+ewGHsi+g==}
+    engines: {node: '>=18.0'}
 
   cross-spawn@7.0.6:
     resolution: {integrity: sha512-uV2QOWP2nWzsy2aMp8aRibhi9dlzF5Hgh5SHaB9OiTGEyDTiJJyx0uy51QXdyWbtAHNua4XJzUKca3OzKUd3vA==}
@@ -6160,6 +6167,8 @@ snapshots:
   copy-to@2.0.1: {}
 
   core-util-is@1.0.3: {}
+
+  croner@9.1.0: {}
 
   cross-spawn@7.0.6:
     dependencies:
