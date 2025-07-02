@@ -338,17 +338,14 @@ export class TaskScheduler {
     if(taskDef.name === "process-repo-assets") {
       logger.info(`Running process-repo-assets task sequence`);
       tasks.push(
-        buildStaticApiTask, // 构建静态API
+        // buildStaticApiTask, // 构建静态API
         updateGitHubDataTask, // 更新GitHub数据
       );
     } else if(taskDef.name === "daily-update") {
       logger.info(`Running daily-update task sequence`);
       tasks.push(
-        buildStaticApiTask,
+        // buildStaticApiTask,
         buildDailyDataTask, // 构建每日数据，包括GitHub数据、贡献者数量、快照记录、数据库记录、webhook回调，每条记录发送一次。
-        // updateGitHubDataTask,
-        // updateBundleSizeTask,
-        // updatePackageDataTask,
       );
     } 
     

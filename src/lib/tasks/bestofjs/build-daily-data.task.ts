@@ -89,7 +89,7 @@ export const buildDailyDataTask = createTask({
             updatedAt: new Date(),
           };
 
-          logger.debug("STEP 10: 更新数据库记录", data);
+          logger.debug("STEP 4: 更新数据库记录", data);
           const result = await db
             .update(schema.repos)
             .set(data)
@@ -106,7 +106,7 @@ export const buildDailyDataTask = createTask({
           const finalRepo = updatedRepo[0] || { ...repo, ...data };
 
           // 发送webhook回调
-          logger.debug("STEP 11: 发送webhook回调");
+          logger.debug("STEP 5: 发送webhook回调");
           const webhookUrl = process.env.DAILY_WEBHOOK_URL;
           if (webhookUrl) {
             try {
