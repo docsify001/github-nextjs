@@ -7,7 +7,7 @@ export default function Header() {
 			<div className="w-full max-w-5xl flex justify-between items-center p-3 px-5 text-sm">
 				<div className="flex gap-5 items-center font-semibold">
 					<Link href={"/"}>首页</Link>
-					<Link href={"/protected/tasks"} className="hover:underline">
+					<Link href={"/protected/tasks/monitor"} className="hover:underline">
 						任务管理
 					</Link>
 					<Link href={"/protected/projects"} className="hover:underline">
