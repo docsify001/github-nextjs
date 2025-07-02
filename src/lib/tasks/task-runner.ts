@@ -14,6 +14,7 @@ import {
 } from "./iteration-helpers";
 import { Task, TaskContext } from "./task-types";
 import { DB, runQuery } from "@/drizzle/database";
+import { aliyunOSSClient } from "@/lib/oss/aliyun-oss";
 
 export function createTask<FlagsType = undefined>({
   name,
@@ -82,26 +83,40 @@ export function createTaskRunner(tasks: Task<RawFlags | undefined>[]) {
           processHallOfFameMembers:
             hallOfFameProcessor.processItems.bind(hallOfFameProcessor),
 
-          // File system helpers to access JSON files from the `build` folder
-          // when running the script either from the monorepo root (local dev)
-          // or from the `backend` app root (when running on Vercel)
+          // OSS helpers to access JSON files from the configured bucket
           async saveJSON(json: unknown, fileName: string) {
             const formattedJson = await prettier.format(JSON.stringify(json), {
               parser: "json",
             });
-            logger.info(`Saving ${fileName}`, {
+            logger.info(`Saving ${fileName} to OSS`, {
               size: prettyBytes(formattedJson.length),
             });
-            const appRoot = getAppRootPath();
-            const filePath = path.join(appRoot, "build", fileName);
-            await fs.outputFile(filePath, formattedJson);
-            logger.info("JSON file saved!", filePath);
+            
+            try {
+              const ossUrl = await aliyunOSSClient.saveJSON(json, fileName);
+              logger.info("JSON file saved to OSS!", ossUrl);
+            } catch (error) {
+              logger.error("Failed to save JSON to OSS, falling back to local file system");
+              // 降级到本地文件系统
+              const appRoot = getAppRootPath();
+              const filePath = path.join(appRoot, "build", fileName);
+              await fs.outputFile(filePath, formattedJson);
+              logger.info("JSON file saved locally!", filePath);
+            }
           },
 
           async readJSON(fileName: string) {
-            const appRoot = getAppRootPath();
-            const filePath = path.join(appRoot, "build", fileName);
-            return fs.readJson(filePath);
+            try {
+              const data = await aliyunOSSClient.readJSON(fileName);
+              logger.info(`JSON file read from OSS: ${fileName}`);
+              return data;
+            } catch (error) {
+              logger.error("Failed to read JSON from OSS, falling back to local file system");
+              // 降级到本地文件系统
+              const appRoot = getAppRootPath();
+              const filePath = path.join(appRoot, "build", fileName);
+              return fs.readJson(filePath);
+            }
           },
         };
       }

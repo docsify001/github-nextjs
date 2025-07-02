@@ -1,13 +1,8 @@
 import { orderBy } from "es-toolkit";
 
-// import { TAGS_EXCLUDED_FROM_RANKINGS } from "@repo/db/constants";
-// import { notifyDiscordProjectList } from "@/shared/discord";
-// import { projectToSlackAttachment, sendMessageToSlack } from "@/shared/slack";
-// import { createTask } from "@/task-runner";
 import { ProjectItem } from "./static-api-types";
 import { TAGS_EXCLUDED_FROM_RANKINGS } from "@/drizzle/constants";
-import { notifyDiscordProjectList } from "@/lib/shared/discord";
-import { projectToSlackAttachment, sendMessageToSlack } from "@/lib/shared/slack";
+import { sendMessageToWeWork, projectToWeWorkNews } from "@/lib/shared/wework";
 import { createTask } from "@/lib/tasks/task-runner";
 
 const NUMBER_OF_PROJECTS = 5;
@@ -15,36 +10,32 @@ const NUMBER_OF_PROJECTS = 5;
 export const notifyDailyTask = createTask({
   name: "notify-daily",
   description:
-    "Send notification on Slack and Discord after static API is built",
+    "Send notification to WeWork after static API is built",
 
   run: async ({ dryRun, logger, readJSON }) => {
-    const slackURL = process.env.SLACK_DAILY_WEBHOOK;
-    // if (!slackURL) throw new Error('No "SLACK_WEBHOOK" env. variable defined');
-    const discordURL = process.env.DISCORD_DAILY_WEBHOOK;
-    // if (!discordURL)
-    //   throw new Error('No "DISCORD_WEBHOOK" env. variable defined');
-
-
-    const projects = await fetchHottestProjects();
-
-    logger.debug("Send the daily notifications...");
-    if(slackURL) {
-      if (await notifySlack({ projects, url: slackURL, dryRun })) {
-        logger.info("Notification sent to Slack");
-      }
-    }
-
-    if (!discordURL) {
-      logger.info("No Discord URL found");
+    // 优先使用企业微信应用消息
+    const agentid = process.env.WEWORK_AGENTID ? parseInt(process.env.WEWORK_AGENTID) : undefined;
+    const weworkURL = process.env.WEWORK_DAILY_WEBHOOK;
+    
+    if (!agentid && !weworkURL) {
+      logger.warn('企业微信配置缺失: 需要配置 WEWORK_AGENTID 或 WEWORK_DAILY_WEBHOOK');
       return { data: null, meta: { sent: false } };
     }
 
-    const sent = await notifyDiscord({
+    const projects = await fetchHottestProjects();
+
+    logger.debug("Send the daily notifications to WeWork...");
+    
+    const sent = await notifyWeWork({
       projects,
-      webhookURL: discordURL,
+      agentid,
+      webhookURL: weworkURL,
       dryRun,
     });
-    if (sent) logger.info("Notification sent to Discord");
+    
+    if (sent) {
+      logger.info("Notification sent to WeWork");
+    }
 
     return { data: null, meta: { sent } };
 
@@ -78,49 +69,41 @@ const isIncludedInHotProjects = (project: ProjectItem) => {
   return !hasExcludedTag;
 };
 
-async function notifySlack({
+async function notifyWeWork({
   projects,
-  url,
+  agentid,
+  webhookURL,
   dryRun,
 }: {
   projects: ProjectItem[];
-  url: string;
+  agentid?: number;
+  webhookURL?: string;
   dryRun: boolean;
 }) {
   const text = `TOP ${NUMBER_OF_PROJECTS} Hottest Projects Today (${formatTodayDate()})`;
 
   const attachments = projects.map((project, i) => {
     const stars = project.trends.daily;
-    const text = `Number ${i + 1} +${stars} stars since yesterday:`;
-    return projectToSlackAttachment(project, text);
+    const pretext = `Number ${i + 1} +${stars} stars since yesterday:`;
+    return projectToWeWorkNews(project, pretext);
   });
 
   if (dryRun) {
-    console.info("[DRY RUN] No message sent to Slack", { text, attachments }); 
-    return;
+    console.info("[DRY RUN] No message sent to WeWork", { text, attachments }); 
+    return false;
   }
 
-  await sendMessageToSlack(text, { url, channel: "", attachments });
-  return true;
-}
-
-async function notifyDiscord({
-  projects,
-  webhookURL,
-  dryRun,
-}: {
-  projects: ProjectItem[];
-  webhookURL: string;
-  dryRun: boolean;
-}) {
-  return await notifyDiscordProjectList({
-    text: `TOP ${NUMBER_OF_PROJECTS} Hottest Projects Today (${formatTodayDate()})`,
-    projects,
-    getProjectComment: (project, index) =>
-      `+${project.trends.daily} stars since yesterday [number ${index + 1}]`,
-    webhookURL,
-    dryRun,
-  });
+  try {
+    await sendMessageToWeWork(text, { 
+      agentid,
+      webhookUrl: webhookURL, 
+      attachments 
+    });
+    return true;
+  } catch (error) {
+    console.error("Failed to send message to WeWork:", error);
+    return false;
+  }
 }
 
 /**

@@ -2,6 +2,7 @@ import OSS from 'ali-oss';
 import { writeFile } from 'fs/promises';
 import { join } from 'path';
 import { tmpdir } from 'os';
+import * as prettier from "prettier";
 
 export class AliyunOSSClient {
   private client: OSS;
@@ -98,6 +99,57 @@ export class AliyunOSSClient {
       return true;
     } catch (error) {
       return false;
+    }
+  }
+
+  /**
+   * 保存JSON文件到OSS
+   * @param json JSON数据
+   * @param fileName 文件名
+   * @returns 保存后的OSS URL
+   */
+  async saveJSON(json: unknown, fileName: string): Promise<string> {
+    try {
+      // 格式化JSON
+      const formattedJson = await prettier.format(JSON.stringify(json), {
+        parser: "json",
+      });
+
+      // 生成OSS路径
+      const ossPath = `json-files/${fileName}`;
+      
+      // 上传到OSS
+      const result = await this.client.put(ossPath, Buffer.from(formattedJson, 'utf-8'), {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      console.log(`JSON文件已保存到OSS: ${result.url}`);
+      return result.url;
+    } catch (error) {
+      console.error('保存JSON文件到OSS失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 从OSS读取JSON文件
+   * @param fileName 文件名
+   * @returns JSON数据
+   */
+  async readJSON(fileName: string): Promise<any> {
+    try {
+      const ossPath = `json-files/${fileName}`;
+      
+      // 从OSS下载文件
+      const result = await this.client.get(ossPath);
+      const jsonString = result.content.toString('utf-8');
+      
+      return JSON.parse(jsonString);
+    } catch (error) {
+      console.error('从OSS读取JSON文件失败:', error);
+      throw error;
     }
   }
 }
