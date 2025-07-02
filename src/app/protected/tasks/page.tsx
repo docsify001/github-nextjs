@@ -6,7 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Play, Square, Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { Play, Square, Clock, CheckCircle, XCircle, AlertCircle, AlertTriangle } from 'lucide-react';
+import { useAuth } from '@/contexts/auth-context';
+import { useRouter } from 'next/navigation';
 
 interface TaskDefinition {
   id: string;
@@ -41,6 +43,8 @@ interface TaskExecution {
 }
 
 export default function TasksPage() {
+  const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
   const [tasks, setTasks] = useState<TaskDefinition[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -53,7 +57,16 @@ export default function TasksPage() {
   const fetchTasks = async () => {
     try {
       setLoading(true);
+      setError(null);
+      
       const response = await fetch('/api/tasks');
+      
+      if (response.status === 401) {
+        setError('认证失败，请重新登录');
+        router.push('/auth/login');
+        return;
+      }
+      
       const data = await response.json();
       
       if (data.success) {
@@ -67,10 +80,10 @@ export default function TasksPage() {
         });
         setRunningTasks(running);
       } else {
-        setError(data.error || 'Failed to fetch tasks');
+        setError(data.error || '获取任务列表失败');
       }
     } catch (err) {
-      setError('Failed to fetch tasks');
+      setError('网络错误，请检查连接');
     } finally {
       setLoading(false);
     }
@@ -182,11 +195,57 @@ export default function TasksPage() {
     return new Date(dateString).toLocaleString('zh-CN');
   };
 
+  // 显示认证加载状态
+  if (authLoading) {
+    return (
+      <div className="container mx-auto p-6">
+        <div className="flex items-center justify-center h-64">
+          <div className="flex flex-col items-center gap-4">
+            <Clock className="h-8 w-8 animate-spin" />
+            <div className="text-lg">验证认证状态...</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 显示认证错误
+  if (!user) {
+    return (
+      <div className="container mx-auto p-6">
+        <div className="flex items-center justify-center h-64">
+          <Card className="w-full max-w-md">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-red-600">
+                <AlertTriangle className="h-5 w-5" />
+                需要登录
+              </CardTitle>
+              <CardDescription>
+                您需要登录才能访问任务管理页面
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button 
+                onClick={() => router.push('/auth/login')}
+                className="w-full"
+              >
+                前往登录
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div className="container mx-auto p-6">
         <div className="flex items-center justify-center h-64">
-          <div className="text-lg">加载中...</div>
+          <div className="flex flex-col items-center gap-4">
+            <Clock className="h-8 w-8 animate-spin" />
+            <div className="text-lg">加载任务列表...</div>
+          </div>
         </div>
       </div>
     );
@@ -196,7 +255,37 @@ export default function TasksPage() {
     return (
       <div className="container mx-auto p-6">
         <div className="flex items-center justify-center h-64">
-          <div className="text-red-500">错误: {error}</div>
+          <Card className="w-full max-w-md">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-red-600">
+                <AlertTriangle className="h-5 w-5" />
+                加载失败
+              </CardTitle>
+              <CardDescription>
+                无法加载任务列表
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <p className="text-sm text-red-600">{error}</p>
+                <div className="flex gap-2">
+                  <Button 
+                    onClick={fetchTasks}
+                    className="flex-1"
+                  >
+                    重试
+                  </Button>
+                  <Button 
+                    variant="outline"
+                    onClick={() => router.push('/auth/login')}
+                    className="flex-1"
+                  >
+                    重新登录
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     );

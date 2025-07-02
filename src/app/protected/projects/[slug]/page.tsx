@@ -1,10 +1,12 @@
 import invariant from "tiny-invariant";
+import { redirect } from "next/navigation";
 
 import { getAllTags, findProjects } from "@/drizzle/projects";
 import { ProjectLogo } from "@/components/projects/project-logo";
 import { ReadmeViewer } from "@/components/projects/readme-viewer";
 import { projectService } from "@/lib/db";
 import { db } from "@/drizzle/database";
+import { createClient } from "@/lib/supabase/server";
 import { ViewProjectPackages } from "./view-packages";
 import { ViewProject } from "./view-project";
 import { ViewRepo } from "./view-repo";
@@ -20,6 +22,13 @@ type PageProps = {
 export const revalidate = 0;
 
 export default async function ViewProjectPage(props: PageProps) {
+  // 验证用户认证
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.getUser();
+  if (error || !data?.user) {
+    redirect("/auth/login");
+  }
+
   const params = await props.params;
 
   const {

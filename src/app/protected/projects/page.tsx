@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { z } from "zod";
+import { redirect } from "next/navigation";
 
 import { db } from "@/drizzle/database";
 import {
@@ -7,6 +8,7 @@ import {
   findProjects,
   ProjectListOrderByKey,
 } from "@/drizzle/projects";
+import { createClient } from "@/lib/supabase/server";
 import { AddProjectButton } from "@/components/projects/add-project-button";
 import { ProjectTable } from "@/components/projects/project-table";
 import { Badge } from "@/components/ui/badge";
@@ -25,6 +27,13 @@ type PageProps = {
 };
 
 export default async function ProjectsPage(props: PageProps) {
+  // 验证用户认证
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.getUser();
+  if (error || !data?.user) {
+    redirect("/auth/login");
+  }
+
   const searchParams = await props.searchParams;
   const searchOptions = searchSchema.parse(searchParams);
   const { limit, offset, sort, tag, text } = searchOptions;

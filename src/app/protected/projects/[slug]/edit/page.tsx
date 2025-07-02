@@ -1,8 +1,10 @@
+import { redirect } from "next/navigation";
 import { getAllTags } from "@/drizzle/projects";
 import { ProjectLogo } from "@/components/projects/project-logo";
 import { ViewTags } from "../view-tags";
 import { ProjectForm } from "./project-form";
 import { projectService } from "@/lib/db";
+import { createClient } from "@/lib/supabase/server";
 
 type PageProps = {
   params: Promise<{
@@ -11,6 +13,13 @@ type PageProps = {
 };
 
 export default async function EditProjectPage(props: PageProps) {
+  // 验证用户认证
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.getUser();
+  if (error || !data?.user) {
+    redirect("/auth/login");
+  }
+
   const params = await props.params;
 
   const {

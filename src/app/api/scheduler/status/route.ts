@@ -1,9 +1,19 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/drizzle/database';
 import { TaskScheduler } from '@/lib/tasks/scheduler';
 import { CronScheduler } from '@/lib/tasks/cron-scheduler';
+import { verifyApiAuth } from '@/lib/auth/auth-utils';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  // 验证用户认证
+  const authResult = await verifyApiAuth(request);
+  if (!authResult.success) {
+    return NextResponse.json(
+      { success: false, error: authResult.error },
+      { status: authResult.status }
+    );
+  }
+
   try {
     const taskScheduler = new TaskScheduler(db);
     const cronScheduler = new CronScheduler(taskScheduler);

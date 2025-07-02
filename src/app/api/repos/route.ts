@@ -8,6 +8,7 @@ import { TaskScheduler } from "@/lib/tasks/scheduler";
 import { Task } from "@/lib/tasks/task-types";
 import { createTaskRunner } from "@/lib/tasks/task-runner";
 import { NextRequest, NextResponse } from "next/server";
+import { verifyApiAuth } from "@/lib/auth/auth-utils";
 
 /**
  * This endpoint is used to create a new project and run the tasks on it.
@@ -17,6 +18,15 @@ import { NextRequest, NextResponse } from "next/server";
  */
 export async function POST(request: NextRequest) {
     try {
+      // 验证用户认证
+      const authResult = await verifyApiAuth(request);
+      if (!authResult.success) {
+        return NextResponse.json(
+          { success: false, error: authResult.error },
+          { status: authResult.status }
+        );
+      }
+
       const { githubUrl, triggeredBy = 'manual', webhookUrl } = await request.json();
   
       if (!githubUrl) {

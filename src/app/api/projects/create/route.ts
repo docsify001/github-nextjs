@@ -8,6 +8,7 @@ import { updateGitHubDataTask } from '@/lib/tasks/bestofjs/update-github-data.ta
 import { createTaskRunner } from '@/lib/tasks/task-runner';
 import { eq, and } from 'drizzle-orm';
 import { schema } from '@/drizzle/database';
+import { verifyApiAuth } from '@/lib/auth/auth-utils';
 
 const logger = createConsola();
 
@@ -44,13 +45,15 @@ interface ProjectData {
 }
 
 export async function POST(request: NextRequest) {
-  const token = request.headers.get('Authorization');
-  if (token !== process.env.PROJECT_API_TOKEN) {
+  // 验证用户认证
+  const authResult = await verifyApiAuth(request);
+  if (!authResult.success) {
     return NextResponse.json(
-      { success: false, error: 'Unauthorized' },
-      { status: 401 }
+      { success: false, error: authResult.error },
+      { status: authResult.status }
     );
   }
+  
   try {
     const { githubUrl, webhookUrl }: CreateProjectRequest = await request.json();
 

@@ -14,6 +14,9 @@ export default function Header() {
 					<Link href={"/protected/projects"} className="hover:underline">
 						项目管理
 					</Link>
+					<Link href={"/protected/auth-status"} className="hover:underline">
+						认证状态
+					</Link>
 				</div>
 				<AuthButton />
 			</div>

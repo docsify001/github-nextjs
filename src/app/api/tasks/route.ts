@@ -1,9 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/drizzle/database';
 import { TaskScheduler } from '@/lib/tasks/scheduler';
+import { verifyApiAuth } from '@/lib/auth/auth-utils';
 
 // 获取任务列表
-export async function GET() {
+export async function GET(request: NextRequest) {
+  // 验证用户认证
+  const authResult = await verifyApiAuth(request);
+  if (!authResult.success) {
+    return NextResponse.json(
+      { success: false, error: authResult.error },
+      { status: authResult.status }
+    );
+  }
+
   try {
     const scheduler = new TaskScheduler(db);
     await scheduler.initializeTaskDefinitions();
@@ -33,6 +43,15 @@ export async function GET() {
 
 // 执行任务
 export async function POST(request: NextRequest) {
+  // 验证用户认证
+  const authResult = await verifyApiAuth(request);
+  if (!authResult.success) {
+    return NextResponse.json(
+      { success: false, error: authResult.error },
+      { status: authResult.status }
+    );
+  }
+
   try {
     const { taskDefinitionId, triggeredBy = 'manual' } = await request.json();
 
