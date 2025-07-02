@@ -378,7 +378,7 @@ async function fetchProjectData(project: any): Promise<ProjectData> {
     description: project.description,
     fullName: fullName,
     stars: githubData.stargazers_count || 0,
-    ownerId: githubData.owner.id,
+    ownerId: githubData.owner_id,
     homepage: githubData.homepage,
     topics: githubData.topics || [],
     createdAt: String(githubData.created_at),
