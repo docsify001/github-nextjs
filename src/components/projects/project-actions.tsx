@@ -92,7 +92,7 @@ export function ProjectActions({ projectId, projectName }: ProjectActionsProps) 
           <DialogHeader>
             <DialogTitle>发送Webhook</DialogTitle>
             <DialogDescription>
-              为项目 "{projectName}" 发送webhook数据到指定URL
+              为项目 &quot;{projectName}&quot; 发送webhook数据到指定URL
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
