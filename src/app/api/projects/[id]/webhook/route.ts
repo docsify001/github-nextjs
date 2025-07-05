@@ -80,7 +80,7 @@ export async function POST(
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'User-Agent': 'BestOfJS-Project-Webhook/1.0',
+        'Authorization': `Bearer ${process.env.DAILY_WEBHOOK_TOKEN}`,
       },
       body: JSON.stringify(webhookRequest),
     });
