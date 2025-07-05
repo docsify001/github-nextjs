@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { findProjects } from "@/drizzle/projects";
 import { ProjectLogo } from "@/components/projects/project-logo";
+import { ProjectActions } from "@/components/projects/project-actions";
 import { Badge, badgeVariants } from "@/components/ui/badge";
 import {
   Table,
@@ -28,6 +29,7 @@ export function ProjectTable({ projects }: Props) {
           <TableHead>GitHub</TableHead>
           <TableHead>Packages</TableHead>
           <TableHead className="text-right">Stars</TableHead>
+          <TableHead className="text-center">操作</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -87,6 +89,12 @@ export function ProjectTable({ projects }: Props) {
             </TableCell>
             <TableCell className="text-right">
               {formatStars(project.stars)}
+            </TableCell>
+            <TableCell className="text-center">
+              <ProjectActions 
+                projectId={project.id} 
+                projectName={project.name} 
+              />
             </TableCell>
           </TableRow>
         ))}

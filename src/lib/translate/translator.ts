@@ -82,9 +82,20 @@ ${text}
   isChinese(text: string): boolean {
     if (!text) return false;
     
-    // 简单的中文检测：检查是否包含中文字符
-    const chineseRegex = /[\u4e00-\u9fff]/;
-    return chineseRegex.test(text);
+    // 过滤掉空白字符和标点符号，只计算实际字符
+    const cleanText = text.replace(/[\s\p{P}]/gu, '');
+    if (cleanText.length === 0) return false;
+    
+    // 统计中文字符数量
+    const chineseRegex = /[\u4e00-\u9fff]/g;
+    const chineseMatches = cleanText.match(chineseRegex);
+    const chineseCount = chineseMatches ? chineseMatches.length : 0;
+    
+    // 计算中文字符占比
+    const chineseRatio = chineseCount / cleanText.length;
+    
+    // 中文字符占比超过60%才认为是中文
+    return chineseRatio > 0.6;
   }
 
   /**

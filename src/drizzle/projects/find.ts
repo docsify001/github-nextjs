@@ -46,6 +46,7 @@ export async function findProjects({
 }: Props) {
   const query = db
     .select({
+      id: projects.id,
       slug: projects.slug,
       name: projects.name,
       description: projects.description,
@@ -72,6 +73,7 @@ export async function findProjects({
     .orderBy(getOrderBy(sort))
     .offset(offset)
     .groupBy(() => [
+      projects.id,
       projects.comments,
       projects.createdAt,
       projects.slug,

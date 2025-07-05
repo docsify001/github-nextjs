@@ -170,6 +170,7 @@ export const updateGitHubDataTask = createTask({
             readme_content: readmeContent,
             // 合并处理后的数据
             ...updateData,
+            readme_content_zh: updateData.readme_content_zh,
             updatedAt: new Date(),
           };
 
@@ -178,7 +179,7 @@ export const updateGitHubDataTask = createTask({
             .update(schema.repos)
             .set(data)
             .where(eq(schema.repos.id, repo.id));
-          logger.debug("数据库更新完成", result.rowCount);
+          logger.debug("数据库更新完成", result.rowCount, repo.id);
 
           // 获取更新后的完整仓库数据
           const updatedRepo = await db
@@ -190,13 +191,16 @@ export const updateGitHubDataTask = createTask({
           const finalRepo = updatedRepo[0] || { ...repo, ...data };
 
           // 发送webhook回调
-          logger.debug("STEP 11: 发送webhook回调");
+          logger.warn("STEP 11: 发送webhook回调: ", finalRepo);
           const webhookUrl = process.env.DAILY_WEBHOOK_URL;
           if (webhookUrl) {
             try {
               const processingTime = Date.now() - startTime;
               const webhookRequest = createRepoWebhookRequest(
-                finalRepo,
+                {
+                  ...finalRepo,
+                  full_name: `${finalRepo.owner}/${finalRepo.name}`,
+                },
                 processingStatus,
                 {
                   task_name: "update-github-data",

@@ -99,7 +99,7 @@ export function createRepoWebhookData(
   return {
     // 基本信息
     id: repo.id,
-    full_name: repo.full_name,
+    full_name: `${repo.owner}/${repo.name}`,
     name: repo.name,
     owner: repo.owner,
     owner_id: repo.owner_id,

@@ -30,6 +30,14 @@ export async function verifyAuth(request: NextRequest) {
       const token = authHeader.substring(7);
       // 这里可以添加 JWT token 验证逻辑
       // 暂时跳过，使用 session 验证
+      if (token === process.env.PROJECT_API_TOKEN) {
+        return {
+          isAuthenticated: true,
+          user: { id: 'api-user', email: 'api@system.com' },
+          error: null,
+          authType: 'api-key'
+        };
+      }
     }
     
     // 使用 Supabase session 验证用户
