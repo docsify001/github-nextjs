@@ -11,7 +11,7 @@ const logger = createConsola();
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   // 验证用户认证
   const authResult = await verifyApiAuth(request);
