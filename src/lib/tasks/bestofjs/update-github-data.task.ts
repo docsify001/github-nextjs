@@ -6,6 +6,7 @@ import { createGitHubClient } from "@/lib/github/github-api-client";
 import { aliyunOSSClient } from "@/lib/oss/aliyun-oss";
 import { translator } from "@/lib/translate/translator";
 import { createRepoWebhookRequest } from "@/lib/webhook/repo-webhook-schema";
+import { sendWebhookToMultipleUrls } from "@/lib/shared/webhook-utils";
 
 export const updateGitHubDataTask = createTask({
   name: "update-github-data",
@@ -192,8 +193,8 @@ export const updateGitHubDataTask = createTask({
 
           // 发送webhook回调
           logger.warn("STEP 11: 发送webhook回调: ", finalRepo);
-          const webhookUrl = process.env.DAILY_WEBHOOK_URL;
-          if (webhookUrl) {
+          const webhookUrls = process.env.DAILY_WEBHOOK_URL;
+          if (webhookUrls) {
             try {
               const processingTime = Date.now() - startTime;
               const webhookRequest = createRepoWebhookRequest(
@@ -210,23 +211,22 @@ export const updateGitHubDataTask = createTask({
                 }
               );
 
-              const webhookResponse = await fetch(webhookUrl, {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  "x-webhook-timestamp": new Date().toISOString(),
-                  "x-webhook-signature": process.env.DAILY_WEBHOOK_TOKEN ?? "",
-                },
-                body: JSON.stringify(webhookRequest),
-              });
+              const results = await sendWebhookToMultipleUrls(
+                webhookUrls,
+                webhookRequest,
+                {
+                  token: process.env.DAILY_WEBHOOK_TOKEN,
+                  timestamp: new Date().toISOString(),
+                }
+              );
 
-              if (!webhookResponse.ok) {
-                logger.error("Webhook回调失败", {
-                  status: webhookResponse.status,
-                  statusText: webhookResponse.statusText,
-                });
+              const successfulCount = results.filter(r => r.success).length;
+              const totalCount = results.length;
+              
+              if (successfulCount > 0) {
+                logger.debug(`Webhook回调成功发送到 ${successfulCount}/${totalCount} 个端点`);
               } else {
-                logger.debug("Webhook回调成功");
+                logger.error("Webhook回调失败", results.map(r => ({ url: r.url, error: r.error })));
               }
             } catch (error) {
               logger.error("Webhook回调异常:", error);
@@ -255,8 +255,8 @@ export const updateGitHubDataTask = createTask({
           logger.error(`处理仓库失败: ${repo.full_name}`, error);
 
           // 发送错误webhook回调
-          const webhookUrl = process.env.DAILY_WEBHOOK_URL;
-          if (webhookUrl) {
+          const webhookUrls = process.env.DAILY_WEBHOOK_URL;
+          if (webhookUrls) {
             try {
               const webhookRequest = createRepoWebhookRequest(
                 repo,
@@ -270,14 +270,23 @@ export const updateGitHubDataTask = createTask({
                 }
               );
 
-              await fetch(webhookUrl, {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  "Authorization": `Bearer ${process.env.DAILY_WEBHOOK_TOKEN}`,
-                },
-                body: JSON.stringify(webhookRequest),
-              });
+              const results = await sendWebhookToMultipleUrls(
+                webhookUrls,
+                webhookRequest,
+                {
+                  token: process.env.DAILY_WEBHOOK_TOKEN,
+                  timestamp: new Date().toISOString(),
+                }
+              );
+
+              const successfulCount = results.filter(r => r.success).length;
+              const totalCount = results.length;
+              
+              if (successfulCount > 0) {
+                logger.debug(`错误webhook回调成功发送到 ${successfulCount}/${totalCount} 个端点`);
+              } else {
+                logger.error("错误webhook回调失败", results.map(r => ({ url: r.url, error: r.error })));
+              }
             } catch (webhookError) {
               logger.error("错误webhook回调失败:", webhookError);
             }
