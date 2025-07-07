@@ -81,7 +81,7 @@ export async function POST(
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${process.env.DAILY_WEBHOOK_TOKEN}`,
-        'x-webhook-signature': process.env.DAILY_WEBHOOK_SIGNATURE ?? '',
+        'x-webhook-signature': process.env.DAILY_WEBHOOK_TOKEN ?? '',
         'x-webhook-timestamp': new Date().toISOString(),
       },
       body: JSON.stringify(webhookRequest),
