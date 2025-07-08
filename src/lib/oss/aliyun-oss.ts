@@ -13,7 +13,7 @@ export class AliyunOSSClient {
       const accessKeySecret = process.env.ALIYUN_ACCESS_KEY_SECRET;
       const bucket = process.env.ALIYUN_OSS_BUCKET;
       const region = process.env.ALIYUN_OSS_REGION;
-
+      console.debug('获取阿里云OSS客户端实例', bucket, region);
       if (!accessKeyId || !accessKeySecret || !bucket || !region) {
         throw new Error('阿里云OSS配置缺失，请检查环境变量');
       }
@@ -26,6 +26,7 @@ export class AliyunOSSClient {
         secure: true, // 使用HTTPS
       });
     }
+    
     return this.client;
   }
 
@@ -50,7 +51,7 @@ export class AliyunOSSClient {
       await writeFile(tempPath, Buffer.from(buffer));
 
       // 上传到OSS
-      const result = await this.getClient().put(ossPath, tempPath);
+      const result = await this.getClient().put(ossPath, tempPath, {timeout: 90000}); // 设置超时时间为30秒
       
       // 清理临时文件
       await writeFile(tempPath, ''); // 清空文件内容
