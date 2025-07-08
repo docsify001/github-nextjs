@@ -4,6 +4,7 @@ import { eq } from 'drizzle-orm';
 import { schema } from '@/drizzle/database';
 import { verifyApiAuth } from '@/lib/auth/auth-utils';
 import { createRepoWebhookRequest } from '@/lib/webhook/repo-webhook-schema';
+import { sendWebhookToMultipleUrls } from '@/lib/shared/webhook-utils';
 import { createConsola } from 'consola';
 
 const logger = createConsola();
@@ -76,22 +77,24 @@ export async function POST(
     );
 
     // 发送webhook
-    const response = await fetch(webhookUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.DAILY_WEBHOOK_TOKEN}`,
-        'x-webhook-signature': process.env.DAILY_WEBHOOK_TOKEN ?? '',
-        'x-webhook-timestamp': new Date().toISOString(),
-      },
-      body: JSON.stringify(webhookRequest),
-    });
+    const results = await sendWebhookToMultipleUrls(
+      webhookUrl,
+      webhookRequest,
+      {
+        token: process.env.DAILY_WEBHOOK_TOKEN,
+        signature: process.env.DAILY_WEBHOOK_SIGNATURE,
+        timestamp: new Date().toISOString(),
+      }
+    );
 
-    if (!response.ok) {
-      throw new Error(`Webhook request failed with status: ${response.status}`);
+    const successfulCount = results.filter(r => r.success).length;
+    const totalCount = results.length;
+    
+    if (successfulCount === 0) {
+      throw new Error(`Webhook request failed for all ${totalCount} endpoints`);
     }
 
-    logger.success(`Webhook sent successfully for project: ${project.name}`);
+    logger.success(`Webhook sent successfully to ${successfulCount}/${totalCount} endpoints for project: ${project.name}`);
 
     return NextResponse.json({
       success: true,

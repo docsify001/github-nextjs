@@ -9,6 +9,7 @@ import { createTaskRunner } from '@/lib/tasks/task-runner';
 import { eq, and } from 'drizzle-orm';
 import { schema } from '@/drizzle/database';
 import { verifyApiAuth } from '@/lib/auth/auth-utils';
+import { sendWebhookToMultipleUrls } from '@/lib/shared/webhook-utils';
 
 const logger = createConsola();
 
@@ -394,24 +395,28 @@ async function sendWebhookData(webhookUrl: string, data: ProjectData) {
   try {
     logger.info(`Sending webhook data to: ${webhookUrl}`);
 
-    const response = await fetch(webhookUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'User-Agent': 'BestOfJS-Project-Creator/1.0'
-      },
-      body: JSON.stringify({
-        event: 'project.created',
-        timestamp: new Date().toISOString(),
-        data: data
-      })
-    });
+    const payload = {
+      event: 'project.created',
+      timestamp: new Date().toISOString(),
+      data: data
+    };
 
-    if (!response.ok) {
-      throw new Error(`Webhook request failed with status: ${response.status}`);
+    const results = await sendWebhookToMultipleUrls(
+      webhookUrl,
+      payload,
+      {
+        timestamp: new Date().toISOString(),
+      }
+    );
+
+    const successfulCount = results.filter(r => r.success).length;
+    const totalCount = results.length;
+    
+    if (successfulCount === 0) {
+      throw new Error(`Webhook request failed for all ${totalCount} endpoints`);
     }
 
-    logger.success(`Webhook sent successfully for project: ${data.name}`);
+    logger.success(`Webhook sent successfully to ${successfulCount}/${totalCount} endpoints for project: ${data.name}`);
   } catch (error) {
     logger.error(`Failed to send webhook:`, error);
     throw error;

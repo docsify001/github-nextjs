@@ -3,6 +3,7 @@ import { z } from "zod";
 import { ProjectItem } from "./static-api-types";
 import { createTask } from "@/lib/tasks/task-runner";
 import { TaskContext } from "@/lib/tasks/task-types";
+import { sendWebhookToMultipleUrls, hasSuccessfulWebhook, getWebhookStats } from "@/lib/shared/webhook-utils";
 
 interface Project extends ProjectItem {
   delta: number;
@@ -30,8 +31,8 @@ export const triggerMonthlyFinishedTask = createTask({
   run: async (context, flags) => {
     const { dryRun, logger } = context;
     const { year, month } = flags;
-    const webhookURL = process.env.MONTHLY_WEBHOOK_URL;
-    if (!webhookURL)
+    const webhookURLs = process.env.MONTHLY_WEBHOOK_URL;
+    if (!webhookURLs)
       throw new Error('No "MONTHLY_WEBHOOK_URL" env. variable!');
 
     const projects = await fetchMonthlyRankings(context, year, month);
@@ -41,11 +42,17 @@ export const triggerMonthlyFinishedTask = createTask({
       projects.map((project: Project) => `${project.name}: +${project.delta}`)
     );
 
-    const sent = await sendWebhook(webhookURL, projects, year, month, dryRun);
+    const results = await sendWebhook(webhookURLs, projects, year, month, dryRun);
+    const sent = hasSuccessfulWebhook(results);
+    const stats = getWebhookStats(results);
 
-    if (sent) logger.info("Webhook notification sent successfully");
+    if (sent) {
+      logger.info(`Webhook notification sent successfully to ${stats.successful}/${stats.total} endpoints`);
+    } else {
+      logger.warn(`Webhook notification failed for all ${stats.total} endpoints`);
+    }
 
-    return { data: null, meta: { sent } };
+    return { data: null, meta: { sent, webhookTotal: stats.total, webhookSuccessful: stats.successful, webhookFailed: stats.failed } };
   },
 });
 
@@ -58,18 +65,12 @@ async function fetchMonthlyRankings(context: TaskContext, year: number, month: n
 }
 
 async function sendWebhook(
-  webhookURL: string, 
+  webhookURLs: string, 
   projects: Project[], 
   year: number, 
   month: number, 
   dryRun: boolean
-): Promise<boolean> {
-  if (dryRun) {
-    console.log("DRY RUN: Would send webhook to", webhookURL);
-    console.log("Data:", { year, month, projectsCount: projects.length });
-    return false;
-  }
-
+): Promise<{ url: string; success: boolean; error?: string }[]> {
   const payload = {
     year,
     month,
@@ -87,26 +88,15 @@ async function sendWebhook(
     timestamp: new Date().toISOString(),
   };
 
-  try {
-    const response = await fetch(webhookURL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-webhook-timestamp': new Date().toISOString(),
-        'x-webhook-signature': process.env.DAILY_WEBHOOK_TOKEN ?? "",
-      },
-      body: JSON.stringify(payload),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Webhook request failed with status ${response.status}: ${response.statusText}`);
-    }
-
-    return true;
-  } catch (error) {
-    console.error('Failed to send webhook:', error);
-    return false;
-  }
+  return await sendWebhookToMultipleUrls(
+    webhookURLs,
+    payload,
+    {
+      token: process.env.DAILY_WEBHOOK_TOKEN,
+      timestamp: new Date().toISOString(),
+    },
+    dryRun
+  );
 }
 
 /**
