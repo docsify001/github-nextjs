@@ -5,25 +5,28 @@ import { tmpdir } from 'os';
 import * as prettier from "prettier";
 
 export class AliyunOSSClient {
-  private client: OSS;
+  private client: OSS | null = null;
 
-  constructor() {
-    const accessKeyId = process.env.ALIYUN_ACCESS_KEY_ID;
-    const accessKeySecret = process.env.ALIYUN_ACCESS_KEY_SECRET;
-    const bucket = process.env.ALIYUN_OSS_BUCKET;
-    const region = process.env.ALIYUN_OSS_REGION;
+  private getClient(): OSS {
+    if (!this.client) {
+      const accessKeyId = process.env.ALIYUN_ACCESS_KEY_ID;
+      const accessKeySecret = process.env.ALIYUN_ACCESS_KEY_SECRET;
+      const bucket = process.env.ALIYUN_OSS_BUCKET;
+      const region = process.env.ALIYUN_OSS_REGION;
 
-    if (!accessKeyId || !accessKeySecret || !bucket || !region) {
-      throw new Error('阿里云OSS配置缺失，请检查环境变量');
+      if (!accessKeyId || !accessKeySecret || !bucket || !region) {
+        throw new Error('阿里云OSS配置缺失，请检查环境变量');
+      }
+
+      this.client = new OSS({
+        accessKeyId,
+        accessKeySecret,
+        bucket,
+        region,
+        secure: true, // 使用HTTPS
+      });
     }
-
-    this.client = new OSS({
-      accessKeyId,
-      accessKeySecret,
-      bucket,
-      region,
-      secure: true, // 使用HTTPS
-    });
+    return this.client;
   }
 
   /**
@@ -47,7 +50,7 @@ export class AliyunOSSClient {
       await writeFile(tempPath, Buffer.from(buffer));
 
       // 上传到OSS
-      const result = await this.client.put(ossPath, tempPath);
+      const result = await this.getClient().put(ossPath, tempPath);
       
       // 清理临时文件
       await writeFile(tempPath, ''); // 清空文件内容
@@ -67,7 +70,7 @@ export class AliyunOSSClient {
    */
   async uploadBuffer(buffer: Buffer, ossPath: string): Promise<string> {
     try {
-      const result = await this.client.put(ossPath, buffer);
+      const result = await this.getClient().put(ossPath, buffer);
       return result.url;
     } catch (error) {
       console.error('上传Buffer到OSS失败:', error);
@@ -95,7 +98,7 @@ export class AliyunOSSClient {
    */
   async exists(ossPath: string): Promise<boolean> {
     try {
-      await this.client.head(ossPath);
+      await this.getClient().head(ossPath);
       return true;
     } catch (error) {
       return false;
@@ -119,7 +122,7 @@ export class AliyunOSSClient {
       const ossPath = `json-files/${fileName}`;
       
       // 上传到OSS
-      const result = await this.client.put(ossPath, Buffer.from(formattedJson, 'utf-8'), {
+      const result = await this.getClient().put(ossPath, Buffer.from(formattedJson, 'utf-8'), {
         headers: {
           'Content-Type': 'application/json',
         },
@@ -143,7 +146,7 @@ export class AliyunOSSClient {
       const ossPath = `json-files/${fileName}`;
       
       // 从OSS下载文件
-      const result = await this.client.get(ossPath);
+      const result = await this.getClient().get(ossPath);
       const jsonString = result.content.toString('utf-8');
       
       return JSON.parse(jsonString);

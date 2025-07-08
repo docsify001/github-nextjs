@@ -7,12 +7,20 @@ export const dynamic = "force-dynamic";
 
 // 全局调度器实例（在 serverless 环境中，每次请求都会重新创建）
 let schedulerInstance: CronerScheduler | null = null;
+let isInitialized = false;
 
-// 获取调度器实例
-function getScheduler(): CronerScheduler {
+// 获取调度器实例并确保初始化
+async function getScheduler(): Promise<CronerScheduler> {
   if (!schedulerInstance) {
     schedulerInstance = new CronerScheduler(db);
   }
+  
+  // 确保任务定义已初始化
+  if (!isInitialized) {
+    await schedulerInstance.initializeTaskDefinitions();
+    isInitialized = true;
+  }
+  
   return schedulerInstance;
 }
 
@@ -28,10 +36,14 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const scheduler = getScheduler();
+    const scheduler = await getScheduler();
     
-    // 初始化任务定义（如果还没有初始化）
-    await scheduler.initializeTaskDefinitions();
+    // 如果调度器还没有启动，则自动启动
+    const status = scheduler.getStatus();
+    if (!status.isRunning) {
+      console.log('Auto-starting scheduler on first GET request...');
+      await scheduler.start();
+    }
     
     const tasks = await scheduler.getTaskDefinitions();
     const runningTasks = scheduler.getRunningTasks();
@@ -54,6 +66,7 @@ export async function GET(request: NextRequest) {
         cronScheduler: cronStatus,
         tasks: tasksWithStatus,
         runningTasks,
+        autoStarted: !status.isRunning, // 标识是否自动启动
       },
     });
   } catch (error) {
@@ -78,7 +91,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const { action, taskId, enabled } = await request.json();
-    const scheduler = getScheduler();
+    const scheduler = await getScheduler();
 
     switch (action) {
       case 'start':
