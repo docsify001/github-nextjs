@@ -3,6 +3,8 @@ import { db } from '@/drizzle/database';
 import { CronerScheduler } from '@/lib/tasks/croner-scheduler';
 import { createConsola } from 'consola';
 
+export const dynamic = "force-dynamic";
+
 const logger = createConsola({
   level: 4,
   formatOptions: {

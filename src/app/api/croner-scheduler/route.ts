@@ -3,6 +3,8 @@ import { db } from '@/drizzle/database';
 import { CronerScheduler } from '@/lib/tasks/croner-scheduler';
 import { verifyApiAuth } from '@/lib/auth/auth-utils';
 
+export const dynamic = "force-dynamic";
+
 // 全局调度器实例（在 serverless 环境中，每次请求都会重新创建）
 let schedulerInstance: CronerScheduler | null = null;
 

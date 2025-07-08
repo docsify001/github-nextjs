@@ -4,6 +4,7 @@ import { ProjectItem } from "./static-api-types";
 import { TAGS_EXCLUDED_FROM_RANKINGS } from "@/drizzle/constants";
 import { sendMessageToWeWork, projectToWeWorkNews } from "@/lib/shared/wework";
 import { createTask } from "@/lib/tasks/task-runner";
+import { sendWebhookToMultipleUrls } from "@/lib/shared/webhook-utils";
 
 const NUMBER_OF_PROJECTS = 5;
 
@@ -92,11 +93,14 @@ async function notifyWeWork({
     console.info("[DRY RUN] No message sent to WeWork", { text, attachments }); 
     return false;
   }
-
+  if(!webhookURL){
+    console.warn("No webhook URL provided, skipping...");
+    return false;
+  }
   try {
-    await sendMessageToWeWork(text, { 
+    await sendMessageToWebhook(webhookURL, { 
       agentid,
-      webhookUrl: webhookURL, 
+      text, 
       attachments 
     });
     return true;
@@ -117,3 +121,19 @@ function formatTodayDate() {
   });
   return formatter.format(new Date());
 }
+
+/**
+ * 这里只能发送webhook，因为企业微信会限制IP地址，所以只能让固定IP的地址发送消息
+ * @param webhookUrl 
+ * @param agentid 
+ * @param text 
+ * @param attachments 
+ */
+async function sendMessageToWebhook(webhookUrl: string, { agentid, text, attachments }: { agentid?: number; text: string; attachments: any[] }) {
+  await sendWebhookToMultipleUrls(webhookUrl, {
+    agentid,
+    text,
+    attachments,
+  });
+}
+

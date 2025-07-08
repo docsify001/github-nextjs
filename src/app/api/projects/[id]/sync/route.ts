@@ -7,6 +7,8 @@ import { updateGitHubDataTask } from '@/lib/tasks/bestofjs/update-github-data.ta
 import { createTaskRunner } from '@/lib/tasks/task-runner';
 import { createConsola } from 'consola';
 
+export const dynamic = "force-dynamic";
+
 const logger = createConsola();
 
 export async function POST(

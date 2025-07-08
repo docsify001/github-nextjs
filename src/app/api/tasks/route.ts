@@ -3,6 +3,8 @@ import { db } from '@/drizzle/database';
 import { CronerScheduler } from '@/lib/tasks/croner-scheduler';
 import { verifyApiAuth } from '@/lib/auth/auth-utils';
 
+export const dynamic = "force-dynamic";
+
 // 获取任务列表
 export async function GET(request: NextRequest) {
   // 验证用户认证

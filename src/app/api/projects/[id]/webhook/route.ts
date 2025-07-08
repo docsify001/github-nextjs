@@ -7,6 +7,8 @@ import { createRepoWebhookRequest } from '@/lib/webhook/repo-webhook-schema';
 import { sendWebhookToMultipleUrls } from '@/lib/shared/webhook-utils';
 import { createConsola } from 'consola';
 
+export const dynamic = "force-dynamic";
+
 const logger = createConsola();
 
 export async function POST(

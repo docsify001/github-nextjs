@@ -11,6 +11,8 @@ import { schema } from '@/drizzle/database';
 import { verifyApiAuth } from '@/lib/auth/auth-utils';
 import { sendWebhookToMultipleUrls } from '@/lib/shared/webhook-utils';
 
+export const dynamic = "force-dynamic";
+
 const logger = createConsola();
 
 interface CreateProjectRequest {
