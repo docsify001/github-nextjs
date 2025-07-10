@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { z } from "zod";
 import { redirect } from "next/navigation";
+import { Suspense } from "react";
 
 import { db } from "@/drizzle/database";
 import {
@@ -38,15 +39,18 @@ export default async function ProjectsPage(props: PageProps) {
   const searchOptions = searchSchema.parse(searchParams);
   const { limit, offset, sort, tag, text } = searchOptions;
 
-  const total = await countProjects({ db, tag, text });
-  const projects = await findProjects({
-    db,
-    limit,
-    offset,
-    sort: sort as ProjectListOrderByKey,
-    tag,
-    text,
-  });
+  // 并行获取总数和项目列表，提高性能
+  const [total, projects] = await Promise.all([
+    countProjects({ db, tag, text }),
+    findProjects({
+      db,
+      limit,
+      offset,
+      sort: sort as ProjectListOrderByKey,
+      tag,
+      text,
+    }),
+  ]);
 
   return (
     <div className="flex flex-col gap-6 w-full">
@@ -60,23 +64,30 @@ export default async function ProjectsPage(props: PageProps) {
 
       <SearchBox text={text} />
 
-      {projects.length > 0 ? (
-        <PaginatedProjectTable
-          projects={projects}
-          searchOptions={searchOptions}
-          total={total}
-        />
-      ) : (
-        <div className="flex h-40 flex-col items-center justify-center gap-6 border">
-          没有找到项目
-          <Link
-            href="/protected/projects"
-            className={buttonVariants({ variant: "secondary" })}
-          >
-            重置
-          </Link>
-        </div>
-      )}
+      <Suspense fallback={<div className="flex h-40 items-center justify-center">加载中...</div>}>
+        {projects.length > 0 ? (
+          <PaginatedProjectTable
+            projects={projects}
+            searchOptions={searchOptions}
+            total={total}
+          />
+        ) : (
+          <div className="flex h-40 flex-col items-center justify-center gap-6 border">
+            <div className="text-center">
+              <p className="text-lg font-medium mb-2">没有找到项目</p>
+              <p className="text-sm text-muted-foreground mb-4">
+                {text ? `搜索 "${text}" 没有结果` : "当前没有项目"}
+              </p>
+            </div>
+            <Link
+              href="/protected/projects"
+              className={buttonVariants({ variant: "secondary" })}
+            >
+              重置搜索
+            </Link>
+          </div>
+        )}
+      </Suspense>
     </div>
   );
 }
@@ -91,27 +102,35 @@ function PaginatedProjectTable({
   total: number;
 }) {
   const { limit, offset, sort } = searchOptions;
+  const currentPage = Math.floor(offset / limit) + 1;
+  const totalPages = Math.ceil(total / limit);
 
   return (
-    <>
-      <div className="flex w-full justify-between">
+    <div className="space-y-4">
+      {/* 顶部工具栏 */}
+      <div className="flex w-full justify-between items-center">
         <ProjectListSortOptionPicker sort={sort as ProjectListOrderByKey} />
-        <ProjectTablePagination
-          offset={offset}
-          limit={limit}
-          sort={sort}
-          total={total}
-        />
+        <div className="text-sm text-muted-foreground">
+          显示第 {offset + 1}-{Math.min(offset + limit, total)} 条，共 {total} 条记录
+        </div>
       </div>
 
-      <ProjectTable projects={projects} />
+      {/* 项目表格 */}
+      <div className="border rounded-lg">
+        <ProjectTable projects={projects} />
+      </div>
 
-      <ProjectTablePagination
-        offset={offset}
-        limit={limit}
-        sort={sort}
-        total={total}
-      />
-    </>
+      {/* 分页控件 */}
+      {totalPages > 1 && (
+        <div className="flex justify-center">
+          <ProjectTablePagination
+            offset={offset}
+            limit={limit}
+            sort={sort}
+            total={total}
+          />
+        </div>
+      )}
+    </div>
   );
 }
