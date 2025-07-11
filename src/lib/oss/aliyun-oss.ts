@@ -59,7 +59,8 @@ export class AliyunOSSClient {
       return result.url;
     } catch (error) {
       console.error('上传文件到OSS失败:', error);
-      throw error;
+      // throw error;
+      return '';
     }
   }
 
