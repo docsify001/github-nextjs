@@ -49,7 +49,7 @@ export function ProjectTablePagination({
     } else {
       // 如果总页数大于5页，显示当前页附近的页码
       let start = Math.max(1, currentPage - 2);
-      let end = Math.min(totalPages, start + maxVisiblePages - 1);
+      const end = Math.min(totalPages, start + maxVisiblePages - 1);
       
       // 调整起始页，确保显示5个页码
       if (end - start + 1 < maxVisiblePages) {
