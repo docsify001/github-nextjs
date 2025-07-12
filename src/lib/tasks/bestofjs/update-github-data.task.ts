@@ -192,8 +192,9 @@ export const updateGitHubDataTask = createTask({
           const finalRepo = updatedRepo[0] || { ...repo, ...data };
 
           // 发送webhook回调
-          logger.warn("STEP 11: 发送webhook回调: ", finalRepo);
           const webhookUrls = process.env.DAILY_WEBHOOK_URL;
+          logger.warn("STEP 11: 发送webhook回调: ",  webhookUrls, finalRepo);
+
           if (webhookUrls) {
             try {
               const processingTime = Date.now() - startTime;
