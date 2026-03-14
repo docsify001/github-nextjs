@@ -18,7 +18,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { ProjectDetails } from "@/drizzle/projects";
+import type { ProjectDetails } from "@/drizzle/projects/get";
 
 type Tag = ProjectDetails["tags"][number];
 

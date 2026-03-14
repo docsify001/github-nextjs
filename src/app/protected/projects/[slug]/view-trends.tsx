@@ -1,4 +1,7 @@
-import { getProjectTrends, OneYearSnapshots } from "@/drizzle/projects";
+import {
+  getProjectTrends,
+  type OneYearSnapshots,
+} from "@/drizzle/projects/trends-client";
 import { formatStars } from "@/lib/format-helpers";
 
 type Props = {

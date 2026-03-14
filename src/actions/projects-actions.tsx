@@ -3,12 +3,11 @@
 // The only purpose of this file is to export server actions we can include from client components to avoid the error:
 // > It is not allowed to define inline "use server" annotated Server Actions in Client Components.
 // > To use Server Actions in a Client Component, you can either export them from a separate file with "use server" at the top, or pass them down through props from a Server Component."
-import { addProjectToRepo, createProject } from "@/drizzle/projects";
+import { addProjectToRepo, createProject, CreateProjectType } from "@/drizzle/projects";
 import { db } from "@/drizzle/database";
 import { createReadmeSyncJob } from "@/lib/readme-sync/job-helpers";
 import { runReadmeSyncForRepo } from "@/lib/readme-sync/run-readme-sync-for-repo";
 
-export type CreateProjectType = "skill" | "application" | "client" | "server";
 
 export async function createProjectAction(gitHubURL: string, type: CreateProjectType) {
   const project = await createProject(gitHubURL, type);
@@ -33,7 +32,7 @@ export async function addProjectToRepoAction({
 }: {
   name: string;
   description: string;
-  type: "client" | "server" | "application" | "skill" | "persona";
+  type: CreateProjectType;
   repoId: string;
 }) {
   const project = await addProjectToRepo({ name, description, type, repoId });

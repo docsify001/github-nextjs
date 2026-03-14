@@ -34,6 +34,8 @@ const PROJECT_TYPE_OPTIONS: { value: CreateProjectType; label: string }[] = [
   { value: "application", label: "Application" },
   { value: "client", label: "MCP Client" },
   { value: "server", label: "MCP Server" },
+  { value: "persona", label: "Persona" },
+
 ];
 
 const formSchema = z.object({

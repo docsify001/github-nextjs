@@ -10,10 +10,13 @@ import {
   sql,
 } from "drizzle-orm";
 
+import { PROJECT_TYPES } from "../constants";
 import { DB } from "../database";
 import * as schema from "../schema";
 
 const { projects, tags, packages, projectsToTags, repos } = schema;
+
+export type ProjectType = (typeof PROJECT_TYPES)[number];
 
 export type ProjectListOrderByKey =
   | "createdAt"
@@ -32,6 +35,7 @@ type Props = {
   sort: ProjectListOrderByKey;
   tag?: string;
   text?: string;
+  type?: ProjectType;
 };
 
 export async function findProjects({
@@ -43,6 +47,7 @@ export async function findProjects({
   sort,
   tag,
   text,
+  type,
 }: Props) {
   const query = db
     .select({
@@ -94,11 +99,12 @@ export async function findProjects({
     query.limit(limit);
   }
 
-  if (text) {
-    query.where(getWhereClauseSearchByText(text));
-  }
-  if (tag) {
-    query.where(getWhereClauseSearchByTag(db, tag));
+  const conditions = [];
+  if (text) conditions.push(getWhereClauseSearchByText(text));
+  if (tag) conditions.push(getWhereClauseSearchByTag(db, tag));
+  if (type) conditions.push(eq(projects.type, type));
+  if (conditions.length) {
+    query.where(conditions.length === 1 ? conditions[0]! : and(...conditions));
   }
   if (owner) {
     query.where(eq(repos.owner, owner));
@@ -135,13 +141,15 @@ export async function countProjects({
   db,
   tag,
   text,
-}: Pick<Props, "db" | "tag" | "text">) {
+  type,
+}: Pick<Props, "db" | "tag" | "text" | "type">) {
   const query = db.select({ value: count() }).from(schema.projects);
-  if (text) {
-    query.where(getWhereClauseSearchByText(text));
-  }
-  if (tag) {
-    query.where(getWhereClauseSearchByTag(db, tag));
+  const conditions = [];
+  if (text) conditions.push(getWhereClauseSearchByText(text));
+  if (tag) conditions.push(getWhereClauseSearchByTag(db, tag));
+  if (type) conditions.push(eq(projects.type, type));
+  if (conditions.length) {
+    query.where(conditions.length === 1 ? conditions[0]! : and(...conditions));
   }
 
   const records = await query;

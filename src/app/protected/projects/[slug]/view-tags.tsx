@@ -6,7 +6,7 @@ import { ReloadIcon } from "@radix-ui/react-icons";
 import { XIcon } from "lucide-react";
 import { toast } from "sonner";
 
-import { ProjectDetails } from "@/drizzle/projects";
+import type { ProjectDetails } from "@/drizzle/projects/get";
 import { TagPicker } from "@/components/projects/tag-picker";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

@@ -1,4 +1,7 @@
-import { getProjectMonthlyTrends, OneYearSnapshots } from "@/drizzle/projects";
+import {
+  getProjectMonthlyTrends,
+  type OneYearSnapshots,
+} from "@/drizzle/projects/trends-client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,

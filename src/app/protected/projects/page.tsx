@@ -18,12 +18,14 @@ import { ProjectTablePagination } from "./project-table-pagination";
 import { SearchBox } from "./search-box";
 import { searchSchema } from "./search-schema";
 import { ProjectListSortOptionPicker } from "./sort-option-picker";
+import { TypeFilterPicker } from "./type-filter-picker";
 
 type PageProps = {
   searchParams: Promise<{
     limit?: string;
     page?: string;
     sort?: string;
+    type?: string;
   }>;
 };
 
@@ -37,11 +39,11 @@ export default async function ProjectsPage(props: PageProps) {
 
   const searchParams = await props.searchParams;
   const searchOptions = searchSchema.parse(searchParams);
-  const { limit, offset, sort, tag, text } = searchOptions;
+  const { limit, offset, sort, tag, text, type } = searchOptions;
 
   // 并行获取总数和项目列表，提高性能
   const [total, projects] = await Promise.all([
-    countProjects({ db, tag, text }),
+    countProjects({ db, tag, text, type }),
     findProjects({
       db,
       limit,
@@ -49,6 +51,7 @@ export default async function ProjectsPage(props: PageProps) {
       sort: sort as ProjectListOrderByKey,
       tag,
       text,
+      type,
     }),
   ]);
 
@@ -62,7 +65,10 @@ export default async function ProjectsPage(props: PageProps) {
         <AddProjectButton />
       </div>
 
-      <SearchBox text={text} />
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+        <SearchBox text={text} />
+        <TypeFilterPicker type={type} />
+      </div>
 
       <Suspense fallback={<div className="flex h-40 items-center justify-center">加载中...</div>}>
         {projects.length > 0 ? (
@@ -102,7 +108,6 @@ function PaginatedProjectTable({
   total: number;
 }) {
   const { limit, offset, sort } = searchOptions;
-  const currentPage = Math.floor(offset / limit) + 1;
   const totalPages = Math.ceil(total / limit);
 
   return (

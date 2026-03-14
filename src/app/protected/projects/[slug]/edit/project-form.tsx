@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 
 import { PROJECT_STATUSES } from "@/drizzle/constants";
-import { ProjectData } from "@/drizzle/projects";
+import type { ProjectData } from "@/drizzle/projects/get";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Card,

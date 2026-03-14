@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { ProjectData } from "@/drizzle/projects";
+import type { ProjectData } from "@/drizzle/projects/get";
 import { buttonVariants } from "@/components/ui/button";
 import {
   Card,

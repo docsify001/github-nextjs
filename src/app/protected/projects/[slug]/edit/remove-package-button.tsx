@@ -4,7 +4,7 @@ import { useState } from "react";
 import { ReloadIcon } from "@radix-ui/react-icons";
 import { toast } from "sonner";
 
-import { ProjectDetails } from "@/drizzle/projects";
+import type { ProjectDetails } from "@/drizzle/projects/get";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,

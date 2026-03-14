@@ -1,12 +1,24 @@
-import { drizzle } from "drizzle-orm/vercel-postgres";
+import { drizzle as drizzleVercel } from "drizzle-orm/vercel-postgres";
+import { drizzle as drizzleNode } from "drizzle-orm/node-postgres";
 import { sql } from "@vercel/postgres";
+import { Pool } from "pg";
 import * as schema from "./schema";
 
 export * as schema from "./schema";
 
-export type DB = ReturnType<typeof drizzle<typeof schema>>;
+export type DB =
+  | ReturnType<typeof drizzleNode<typeof schema>>
+  | ReturnType<typeof drizzleVercel<typeof schema>>;
 
-export const db = drizzle(sql, { schema });
+const localPool =
+  process.env.DATABASE_URL ?
+    new Pool({ connectionString: process.env.DATABASE_URL })
+  : null;
+
+export const db =
+  localPool ?
+    drizzleNode(localPool, { schema })
+  : drizzleVercel(sql, { schema });
 
 export async function runQuery(callback: (db: DB) => Promise<void>) {
   try {

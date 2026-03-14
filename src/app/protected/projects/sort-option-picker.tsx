@@ -2,7 +2,7 @@
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
-import { ProjectListOrderByKey } from "@/drizzle/projects";
+import type { ProjectListOrderByKey } from "@/drizzle/projects/find";
 import {
   Select,
   SelectContent,

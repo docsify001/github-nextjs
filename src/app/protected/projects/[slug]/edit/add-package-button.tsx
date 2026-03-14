@@ -8,7 +8,7 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
-import { ProjectDetails } from "@/drizzle/projects";
+import type { ProjectDetails } from "@/drizzle/projects/get";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,

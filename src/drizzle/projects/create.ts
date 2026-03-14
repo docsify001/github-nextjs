@@ -8,7 +8,7 @@ import { db } from "../database";
 import * as schema from "../schema";
 import { generateProjectDefaultSlug } from "./project-helpers";
 
-export type CreateProjectType = "skill" | "application" | "client" | "server";
+export type CreateProjectType = "skill" | "application" | "client" | "server" | "persona";
 
 export async function createProject(gitHubURL: string, type: CreateProjectType) {
   const fullName = gitHubURL.split("/").slice(-2).join("/");
@@ -67,7 +67,7 @@ export async function addProjectToRepo({
 }: {
   name: string;
   description: string;
-  type: "client" | "server" | "application" | "skill" | "persona";
+  type: CreateProjectType;
   repoId: string;
 }) {
   const createdProjects = await db

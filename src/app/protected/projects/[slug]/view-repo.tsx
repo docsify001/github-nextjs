@@ -1,7 +1,7 @@
 "use client";
 
-import { schema } from "@/drizzle/database";
-import { ProjectDetails } from "@/drizzle/projects";
+import * as schema from "@/drizzle/schema";
+import type { ProjectDetails } from "@/drizzle/projects/get";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {

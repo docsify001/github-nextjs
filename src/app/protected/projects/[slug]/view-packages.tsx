@@ -1,7 +1,7 @@
 import React from "react";
 import prettyBytes from "pretty-bytes";
 
-import { ProjectDetails } from "@/drizzle/projects";
+import type { ProjectDetails } from "@/drizzle/projects/get";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,

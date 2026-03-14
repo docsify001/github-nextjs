@@ -7,3 +7,4 @@ export * from "./repos";
 export * from "./hall-of-fame";
 export * from "./tasks";
 export * from "./readme-sync-jobs";
+export * from "./project-sync-jobs";

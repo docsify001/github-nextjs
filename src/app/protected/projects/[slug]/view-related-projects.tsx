@@ -1,4 +1,4 @@
-import { ProjectDetails } from "@/drizzle/projects";
+import type { ProjectDetails } from "@/drizzle/projects/get";
 import { AddProjectToRepoButton } from "@/components/projects/add-project-to-repo-button";
 import { ProjectTable } from "@/components/projects/project-table";
 

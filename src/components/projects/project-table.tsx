@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { findProjects } from "@/drizzle/projects";
+import type { findProjects } from "@/drizzle/projects";
 import { ProjectLogo } from "@/components/projects/project-logo";
 import { ProjectActions } from "@/components/projects/project-actions";
 import { Badge, badgeVariants } from "@/components/ui/badge";
