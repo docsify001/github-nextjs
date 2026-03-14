@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/drizzle/database';
-import { createProject } from '@/drizzle/projects/create';
+import { createProject, type CreateProjectType } from '@/drizzle/projects/create';
 import { createGitHubClient } from '@/lib/github/github-api-client';
 import { createNpmClient } from '@/lib/shared/npm-api-client';
 import { createConsola } from 'consola';
@@ -10,14 +10,20 @@ import { eq, and } from 'drizzle-orm';
 import { schema } from '@/drizzle/database';
 import { verifyApiAuth } from '@/lib/auth/auth-utils';
 import { sendWebhookToMultipleUrls } from '@/lib/shared/webhook-utils';
+import { createReadmeSyncJob } from '@/lib/readme-sync/job-helpers';
+import { runReadmeSyncForRepo } from '@/lib/readme-sync/run-readme-sync-for-repo';
 
 export const dynamic = "force-dynamic";
 
 const logger = createConsola();
 
+const CREATE_PROJECT_TYPES: CreateProjectType[] = ["skill", "application", "client", "server"];
+
 interface CreateProjectRequest {
   githubUrl: string;
   webhookUrl?: string;
+  /** 项目类型：skill | application | client | server，不传时默认 application */
+  type?: CreateProjectType;
 }
 
 interface ProjectData {
@@ -58,7 +64,7 @@ export async function POST(request: NextRequest) {
   }
   
   try {
-    const { githubUrl, webhookUrl }: CreateProjectRequest = await request.json();
+    const { githubUrl, webhookUrl, type: requestType }: CreateProjectRequest = await request.json();
 
     if (!githubUrl) {
       return NextResponse.json(
@@ -66,6 +72,9 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    const projectType: CreateProjectType =
+      requestType && CREATE_PROJECT_TYPES.includes(requestType) ? requestType : "application";
 
     // 验证和清理GitHub URL
     const cleanedUrl = validateAndCleanGitHubUrl(githubUrl);
@@ -111,12 +120,31 @@ export async function POST(request: NextRequest) {
     }
 
     // 创建新项目
-    const project = await createProject(cleanedUrl);
+    const project = await createProject(cleanedUrl, projectType);
     logger.info(`Project created: ${project.name} (${project.id})`);
 
     // 获取完整的项目数据，包括 repo 信息
     const fullProjectData = await getFullProjectData(project.id);
     logger.info(`Full project data retrieved for: ${fullProjectData.name}`);
+
+    const repoId = fullProjectData.repo.id;
+    try {
+      const readmeJob = await createReadmeSyncJob(db, {
+        repoId,
+        triggeredBy: 'project_create',
+      });
+      runReadmeSyncForRepo(db, repoId, readmeJob.id).then((result) => {
+        if (result.success) {
+          logger.info(`README sync succeeded for repo ${repoId}`);
+        } else {
+          logger.error(`README sync failed for repo ${repoId}:`, result.error);
+        }
+      }).catch((err) => {
+        logger.error(`README sync error for repo ${repoId}:`, err);
+      });
+    } catch (jobErr) {
+      logger.error('Failed to create readme sync job:', jobErr);
+    }
 
     // 异步执行 updateGitHubDataTask 来获取当前项目对应的 repo 数据
     runUpdateGitHubDataTask(fullProjectData).then(async (result) => {

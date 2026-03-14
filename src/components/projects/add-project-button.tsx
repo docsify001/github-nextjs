@@ -8,7 +8,7 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
-import { createProjectAction } from "@/actions/projects-actions";
+import { createProjectAction, type CreateProjectType } from "@/actions/projects-actions";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -19,12 +19,28 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+const PROJECT_TYPE_OPTIONS: { value: CreateProjectType; label: string }[] = [
+  { value: "skill", label: "Skills" },
+  { value: "application", label: "Application" },
+  { value: "client", label: "MCP Client" },
+  { value: "server", label: "MCP Server" },
+];
 
 const formSchema = z.object({
-  gitHubURL: z.string().url().startsWith("https://github.com/"),
+  gitHubURL: z.string().url().startsWith("https://github.com/", "请输入有效的 GitHub 仓库 URL"),
+  type: z.enum(["skill", "application", "client", "server"], {
+    required_error: "请选择项目类型",
+  }),
 });
 
 export function AddProjectButton() {
@@ -32,14 +48,14 @@ export function AddProjectButton() {
   const router = useRouter();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: { gitHubURL: "" },
+    defaultValues: { gitHubURL: "", type: undefined },
   });
 
   const isPending = form.formState.isSubmitting;
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
-      const project = await createProjectAction(values.gitHubURL);
+      const project = await createProjectAction(values.gitHubURL, values.type);
       toast.success(`项目创建成功: ${project.name}`);
       setOpen(false);
       router.push(`/protected/projects/${project.slug}`);
@@ -59,21 +75,47 @@ export function AddProjectButton() {
             <DialogHeader>
               <DialogTitle>添加项目</DialogTitle>
               <DialogDescription>
-                指定GitHub URL 添加项目
+                指定 GitHub URL 与项目类型
               </DialogDescription>
             </DialogHeader>
-            <div className="grid grid-cols-[100px_1fr] items-center gap-4">
-              <Label htmlFor="name" className="text-right">
-                GitHub URL
-              </Label>
+            <div className="space-y-4">
               <FormField
                 control={form.control}
                 name="gitHubURL"
                 render={({ field }) => (
                   <FormItem>
+                    <FormLabel>GitHub URL</FormLabel>
                     <FormControl>
-                      <Input placeholder="https://github.com/..." {...field} />
+                      <Input placeholder="https://github.com/owner/repo" {...field} />
                     </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="type"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>项目类型</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value}
+                      required
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="请选择项目类型" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {PROJECT_TYPE_OPTIONS.map((opt) => (
+                          <SelectItem key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}

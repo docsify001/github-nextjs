@@ -8,7 +8,9 @@ import { db } from "../database";
 import * as schema from "../schema";
 import { generateProjectDefaultSlug } from "./project-helpers";
 
-export async function createProject(gitHubURL: string) {
+export type CreateProjectType = "skill" | "application" | "client" | "server";
+
+export async function createProject(gitHubURL: string, type: CreateProjectType) {
   const fullName = gitHubURL.split("/").slice(-2).join("/");
   const repoData = await fetchGitHubRepoData(fullName);
 
@@ -28,6 +30,7 @@ export async function createProject(gitHubURL: string) {
         description: repoData.description || "(No description)",
         url: repoData.homepage,
         status: "active",
+        type,
       })
       .returning();
   });
