@@ -25,42 +25,52 @@ export class ProjectService {
   }
 
   async getProjectByKey(key: PgColumn, value: string) {
-    const project = await this.db.query.projects.findFirst({
-      where: eq(key, value),
-      with: {
-        repo: {
-          with: {
-            snapshots: {
-              orderBy: asc(schema.snapshots.year),
-              columns: {
-                year: true,
-                months: true,
+    try {
+      const project = await this.db.query.projects.findFirst({
+        where: eq(key, value),
+        with: {
+          repo: {
+            with: {
+              snapshots: {
+                orderBy: asc(schema.snapshots.year),
+                columns: {
+                  year: true,
+                  months: true,
+                },
               },
             },
           },
-        },
-        projectsToTags: {
-          with: {
-            tag: {},
+          projectsToTags: {
+            with: {
+              tag: {},
+            },
+          },
+          packages: {
+            with: { bundles: true },
           },
         },
-        packages: {
-          with: { bundles: true },
-        },
-      },
-    });
-    if (!project) return null;
-    invariant(project?.repo);
-    const snapshots = snapshotsSchema.parse(project?.repo?.snapshots);
-    const repo = {
-      ...project.repo,
-      full_name: project.repo.owner + "/" + project.repo.name,
-      snapshots,
-    };
+      });
+      if (!project) return null;
+      invariant(project?.repo);
+      const snapshots = snapshotsSchema.parse(project?.repo?.snapshots);
+      const repo = {
+        ...project.repo,
+        full_name: project.repo.owner + "/" + project.repo.name,
+        snapshots,
+      };
 
-    const tags = project.projectsToTags.map((ptt) => ptt.tag);
+      const tags = project.projectsToTags.map((ptt) => ptt.tag);
 
-    return { ...project, repo, tags };
+      return { ...project, repo, tags };
+    } catch (err) {
+      const cause = err instanceof Error ? err : new Error(String(err));
+      const message =
+        cause.cause instanceof Error
+          ? (cause.cause as Error & { message?: string }).message
+          : cause.message;
+      console.error("[ProjectService.getProjectByKey] DB error:", message);
+      throw new Error(`Project query failed: ${message}`, { cause: err });
+    }
   }
 }
 

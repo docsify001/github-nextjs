@@ -67,10 +67,10 @@ export function ProjectTablePagination({
   const pageNumbers = generatePageNumbers();
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
       {/* 分页信息 */}
-      <div className="text-sm text-muted-foreground mr-4">
-        第 {currentPage} 页，共 {totalPages} 页 ({total} 条记录)
+      <div className="text-xs sm:text-sm text-muted-foreground order-last w-full text-center sm:order-none sm:mr-4 sm:w-auto">
+        第 {currentPage} 页，共 {totalPages} 页 ({total} 条)
       </div>
       
       {/* 上一页按钮 */}

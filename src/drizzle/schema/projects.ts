@@ -8,7 +8,7 @@ import {
   timestamp,
 } from "drizzle-orm/pg-core";
 
-import { PROJECT_STATUSES } from "../constants";
+import { PROJECT_STATUSES, PROJECT_TYPES } from "../constants";
 import { packages } from "./packages";
 import { repos } from "./repos";
 import { tags } from "./tags";
@@ -22,6 +22,7 @@ export const projects = pgTable("projects", {
   url: text("url"),
   overrideURL: boolean("override_url"),
   status: text("status", { enum: PROJECT_STATUSES }).notNull(),
+  type: text("type", { enum: PROJECT_TYPES }).notNull().default("application"),
   logo: text("logo"),
   twitter: text("twitter"),
   priority: smallint("priority").notNull().default(0),
@@ -31,6 +32,8 @@ export const projects = pgTable("projects", {
   repoId: text("repoId")
     .references(() => repos.id, { onDelete: "cascade" })
     .notNull(),
+  // SKILL.md 路径，仅 type=skill 时使用，默认根目录 SKILL.md
+  skillMdPath: text("skill_md_path").default("SKILL.md"),
 });
 
 export const projectsToTags = pgTable(

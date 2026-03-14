@@ -13,12 +13,14 @@ export async function createProjectAction(gitHubURL: string) {
 export async function addProjectToRepoAction({
   name,
   description,
+  type,
   repoId,
 }: {
   name: string;
   description: string;
+  type: "client" | "server" | "application" | "skill" | "persona";
   repoId: string;
 }) {
-  const project = await addProjectToRepo({ name, description, repoId });
+  const project = await addProjectToRepo({ name, description, type, repoId });
   return project;
 }

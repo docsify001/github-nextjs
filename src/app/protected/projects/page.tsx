@@ -53,9 +53,9 @@ export default async function ProjectsPage(props: PageProps) {
   ]);
 
   return (
-    <div className="flex flex-col gap-6 w-full">
-      <div className="flex justify-between">
-        <h1 className="flex scroll-m-20 items-center gap-2 text-3xl font-extrabold tracking-tight lg:text-4xl">
+    <div className="flex flex-col gap-4 sm:gap-6 w-full max-w-[100vw] px-2 sm:px-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center">
+        <h1 className="flex scroll-m-20 items-center gap-2 text-2xl font-extrabold tracking-tight sm:text-3xl lg:text-4xl">
           项目列表
           <Badge className="text-sm">{total}</Badge>
         </h1>
@@ -107,22 +107,22 @@ function PaginatedProjectTable({
 
   return (
     <div className="space-y-4">
-      {/* 顶部工具栏 */}
-      <div className="flex w-full justify-between items-center">
+      {/* 顶部工具栏：小屏纵向排列 */}
+      <div className="flex flex-col gap-2 sm:flex-row sm:justify-between sm:items-center">
         <ProjectListSortOptionPicker sort={sort as ProjectListOrderByKey} />
-        <div className="text-sm text-muted-foreground">
+        <div className="text-sm text-muted-foreground shrink-0">
           显示第 {offset + 1}-{Math.min(offset + limit, total)} 条，共 {total} 条记录
         </div>
       </div>
 
-      {/* 项目表格 */}
-      <div className="border rounded-lg">
+      {/* 项目表格：小屏横向滚动 */}
+      <div className="border rounded-lg overflow-x-auto">
         <ProjectTable projects={projects} />
       </div>
 
       {/* 分页控件 */}
       {totalPages > 1 && (
-        <div className="flex justify-center">
+        <div className="flex flex-wrap justify-center gap-2">
           <ProjectTablePagination
             offset={offset}
             limit={limit}

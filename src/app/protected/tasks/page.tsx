@@ -222,11 +222,11 @@ export default function TasksPage() {
   // 显示认证加载状态
   if (authLoading) {
     return (
-      <div className="container mx-auto p-6">
-        <div className="flex items-center justify-center h-64">
+      <div className="container mx-auto px-4 py-6 sm:px-6 sm:py-8">
+        <div className="flex min-h-[16rem] items-center justify-center">
           <div className="flex flex-col items-center gap-4">
-            <Clock className="h-8 w-8 animate-spin" />
-            <div className="text-lg">验证认证状态...</div>
+            <Clock className="h-8 w-8 animate-spin text-muted-foreground" />
+            <div className="text-sm sm:text-base">验证认证状态...</div>
           </div>
         </div>
       </div>
@@ -236,8 +236,8 @@ export default function TasksPage() {
   // 显示认证错误
   if (!user) {
     return (
-      <div className="container mx-auto p-6">
-        <div className="flex items-center justify-center h-64">
+      <div className="container mx-auto px-4 py-6 sm:px-6 sm:py-8">
+        <div className="flex min-h-[16rem] items-center justify-center">
           <Card className="w-full max-w-md">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-red-600">
@@ -264,11 +264,11 @@ export default function TasksPage() {
 
   if (loading) {
     return (
-      <div className="container mx-auto p-6">
-        <div className="flex items-center justify-center h-64">
+      <div className="container mx-auto px-4 py-6 sm:px-6 sm:py-8">
+        <div className="flex min-h-[16rem] items-center justify-center">
           <div className="flex flex-col items-center gap-4">
-            <Clock className="h-8 w-8 animate-spin" />
-            <div className="text-lg">加载任务列表...</div>
+            <Clock className="h-8 w-8 animate-spin text-muted-foreground" />
+            <div className="text-sm sm:text-base">加载任务列表...</div>
           </div>
         </div>
       </div>
@@ -277,8 +277,8 @@ export default function TasksPage() {
 
   if (error) {
     return (
-      <div className="container mx-auto p-6">
-        <div className="flex items-center justify-center h-64">
+      <div className="container mx-auto px-4 py-6 sm:px-6 sm:py-8">
+        <div className="flex min-h-[16rem] items-center justify-center px-2">
           <Card className="w-full max-w-md">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-red-600">
@@ -292,17 +292,17 @@ export default function TasksPage() {
             <CardContent>
               <div className="space-y-4">
                 <p className="text-sm text-red-600">{error}</p>
-                <div className="flex gap-2">
+                <div className="flex flex-col gap-2 sm:flex-row">
                   <Button 
                     onClick={fetchTasks}
-                    className="flex-1"
+                    className="flex-1 sm:flex-initial"
                   >
                     重试
                   </Button>
                   <Button 
                     variant="outline"
                     onClick={() => router.push('/auth/login')}
-                    className="flex-1"
+                    className="flex-1 sm:flex-initial"
                   >
                     重新登录
                   </Button>
@@ -316,45 +316,47 @@ export default function TasksPage() {
   }
 
   return (
-    <div className="container mx-auto p-6">
+    <div className="container mx-auto px-4 py-6 sm:px-6 sm:py-8 lg:max-w-4xl">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold">任务管理</h1>
-        <p className="text-gray-600 mt-2">管理定时任务的执行和状态</p>
+        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">任务管理</h1>
+        <p className="mt-1 text-sm text-muted-foreground sm:mt-2">管理定时任务的执行和状态</p>
       </div>
 
-      <div className="grid gap-6">
+      <div className="grid gap-4 sm:gap-6">
         {tasks.map((task) => (
           <Card key={task.id}>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="flex items-center gap-2">
-                    {task.name}
-                    <Badge variant={task.isDaily ? 'default' : 'secondary'}>
+            <CardHeader className="space-y-4 pb-4">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0 flex-1">
+                  <CardTitle className="flex flex-wrap items-center gap-2 text-lg sm:text-xl">
+                    <span className="break-words">{task.name}</span>
+                    <Badge variant={task.isDaily ? 'default' : 'secondary'} className="shrink-0">
                       {task.isDaily ? '每日' : task.isMonthly ? '每月' : '自定义'}
                     </Badge>
                   </CardTitle>
-                  <CardDescription>{task.description}</CardDescription>
+                  <CardDescription className="mt-1 line-clamp-2 sm:line-clamp-none">
+                    {task.description}
+                  </CardDescription>
                 </div>
-                <div className="flex items-center gap-4">
+                <div className="flex flex-wrap items-center gap-3 sm:shrink-0 sm:gap-4">
                   <div className="flex items-center space-x-2">
                     <Switch
                       id={`toggle-${task.id}`}
                       checked={task.isEnabled}
                       onCheckedChange={(enabled) => toggleTask(task.id, enabled)}
                     />
-                    <Label htmlFor={`toggle-${task.id}`}>
+                    <Label htmlFor={`toggle-${task.id}`} className="text-sm">
                       {task.isEnabled ? '启用' : '禁用'}
                     </Label>
                   </div>
-                  
                   {runningTasks.has(task.id) ? (
                     <Button
                       variant="destructive"
                       size="sm"
                       onClick={() => stopTask(task.id)}
+                      className="shrink-0"
                     >
-                      <Square className="h-4 w-4 mr-2" />
+                      <Square className="h-4 w-4 shrink-0 sm:mr-2" />
                       停止
                     </Button>
                   ) : (
@@ -362,44 +364,45 @@ export default function TasksPage() {
                       size="sm"
                       onClick={() => executeTask(task.id)}
                       disabled={!task.isEnabled}
+                      className="shrink-0"
                     >
-                      <Play className="h-4 w-4 mr-2" />
+                      <Play className="h-4 w-4 shrink-0 sm:mr-2" />
                       执行
                     </Button>
                   )}
                 </div>
               </div>
             </CardHeader>
-            
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <h4 className="font-medium mb-2">任务信息</h4>
-                  <div className="space-y-1 text-sm text-gray-600">
+
+            <CardContent className="pt-0">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div className="space-y-1">
+                  <h4 className="text-sm font-medium text-foreground">任务信息</h4>
+                  <div className="space-y-1 text-sm text-muted-foreground">
                     <div>类型: {task.taskType}</div>
-                    <div>定时: {task.cronExpression || '手动触发'}</div>
+                    <div className="break-all">定时: {task.cronExpression || '手动触发'}</div>
                     <div>状态: {task.status?.isRunning ? '运行中' : '空闲'}</div>
-                    <div>上次执行: {formatDate(task.status?.lastRunAt)}</div>
+                    <div className="truncate sm:whitespace-normal">上次执行: {formatDate(task.status?.lastRunAt)}</div>
                   </div>
                 </div>
-                
-                <div>
-                  <h4 className="font-medium mb-2">最近执行记录</h4>
+                <div className="space-y-2">
+                  <h4 className="text-sm font-medium text-foreground">最近执行记录</h4>
                   <div className="space-y-2">
                     {task.recentExecutions && task.recentExecutions.length > 0 ? (
                       task.recentExecutions.map((execution) => (
-                        <div key={execution.id} className="flex items-center justify-between text-sm">
+                        <div
+                          key={execution.id}
+                          className="flex flex-col gap-0.5 text-sm sm:flex-row sm:items-center sm:justify-between"
+                        >
                           <div className="flex items-center gap-2">
                             {getStatusIcon(execution.status)}
                             <span className="capitalize">{execution.status}</span>
                           </div>
-                          <div className="text-gray-500">
-                            {formatDuration(execution.duration)}
-                          </div>
+                          <span className="text-muted-foreground">{formatDuration(execution.duration)}</span>
                         </div>
                       ))
                     ) : (
-                      <div className="text-sm text-gray-500">暂无执行记录</div>
+                      <div className="text-sm text-muted-foreground">暂无执行记录</div>
                     )}
                   </div>
                 </div>

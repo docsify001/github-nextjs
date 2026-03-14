@@ -3,7 +3,6 @@ import { eq, desc } from 'drizzle-orm';
 import { schema } from '@/drizzle/database';
 import { createConsola } from 'consola';
 import { Task } from './task-types';
-import { buildStaticApiTask } from './bestofjs/build-static-api.task';
 import { createTaskRunner } from './task-runner';
 import { updateGitHubDataTask } from './bestofjs/update-github-data.task';
 import { updateBundleSizeTask } from './bestofjs/update-bundle-size.task';
@@ -14,6 +13,7 @@ import { buildWeeklyRankingsTask } from './bestofjs/build-weekly-rankings.task';
 import { triggerWeeklyFinishedTask } from './bestofjs/trigger-weekly-finished.task';
 import { buildDailyDataTask } from './bestofjs/build-daily-data.task';
 import { notifyDailyTask } from './bestofjs/notify-daily.task';
+import { syncSkillReposTask } from './bestofjs/sync-skill-repos.task';
 
 // 创建logger实例
 const logger = createConsola({
@@ -103,6 +103,16 @@ export class CronerScheduler {
         isWeekly: false,
         taskType: 'daily',
       },
+      {
+        name: 'sync-skill-repos',
+        description: 'Skill 仓库同步：拉取 SKILL.md，解析并推送至 web skills webhook。建议在每日仓库 webhook 之后执行',
+        cronExpression: '0 5 * * *', // 每天凌晨5点
+        isEnabled: true,
+        isDaily: true,
+        isMonthly: false,
+        isWeekly: false,
+        taskType: 'daily',
+      },
     ];
 
     for (const task of defaultTasks) {
@@ -155,7 +165,7 @@ export class CronerScheduler {
     }
 
     this.isRunning = false;
-    
+
     // 停止所有 cron jobs
     for (const [taskId, cronJob] of this.cronJobs) {
       cronJob.stop();
@@ -189,7 +199,7 @@ export class CronerScheduler {
       });
 
       this.cronJobs.set(task.id, cronJob);
-      
+
       // 更新任务状态中的下次执行时间
       const nextRun = cronJob.nextRun();
       if (nextRun) {
@@ -220,7 +230,7 @@ export class CronerScheduler {
       .from(schema.taskStatus)
       .where(eq(schema.taskStatus.taskDefinitionId, taskDefinitionId))
       .limit(1);
-    
+
     return status[0] || null;
   }
 
@@ -450,19 +460,22 @@ export class CronerScheduler {
     const results: { task: string; status: string }[] = [];
     const tasks: Task<any>[] = [];
 
-    if(taskDef.name === "process-repo-assets") {
+    if (taskDef.name === "process-repo-assets") {
       logger.info(`Running process-repo-assets task sequence`);
       tasks.push(
         updateGitHubDataTask, // 更新GitHub数据
       );
-    } else if(taskDef.name === "daily-update") {
+    } else if (taskDef.name === "daily-update") {
       logger.info(`Running daily-update task sequence`);
       tasks.push(
         buildDailyDataTask, // 构建每日数据，包括GitHub数据、贡献者数量、快照记录、数据库记录、webhook回调，每条记录发送一次。
         notifyDailyTask, // 发送每日通知
       );
-    } 
-    
+    } else if (taskDef.name === "sync-skill-repos") {
+      logger.info(`Running sync-skill-repos task`);
+      tasks.push(syncSkillReposTask);
+    }
+
     if (tasks.length > 0) {
       const runner = createTaskRunner(tasks);
       try {
@@ -478,7 +491,7 @@ export class CronerScheduler {
         });
         logger.success(`Task runner completed successfully`);
         logger.debug(`Task runner result:`, result);
-        
+
         // 记录每个任务的完成状态
         tasks.forEach((task) => {
           results.push({ task: task.name, status: 'completed' });
@@ -503,7 +516,7 @@ export class CronerScheduler {
     const results: { task: string; status: string }[] = [];
     const tasks: Task<any>[] = [];
 
-    if(taskDef.name === "monthly-rankings") {
+    if (taskDef.name === "monthly-rankings") {
       logger.info(`Running monthly-rankings task sequence`);
       tasks.push(
         buildMonthlyRankingsTask,   // 构件每月排行数据，并将排行数据保存到文件
@@ -527,7 +540,7 @@ export class CronerScheduler {
         });
         logger.success(`Task runner completed successfully`);
         logger.debug(`Task runner result:`, result);
-        
+
         // 记录每个任务的完成状态
         tasks.forEach((task) => {
           results.push({ task: task.name, status: 'completed' });
@@ -551,7 +564,7 @@ export class CronerScheduler {
     const results: { task: string; status: string }[] = [];
     const tasks: Task<any>[] = [];
 
-    if(taskDef.name === "weekly-rankings") {
+    if (taskDef.name === "weekly-rankings") {
       logger.info(`Running weekly-rankings task sequence`);
       tasks.push(
         updateGitHubDataTask, // 更新GitHub数据，包括README内容、Open Graph图片、描述翻译、README翻译、release note翻译
@@ -578,7 +591,7 @@ export class CronerScheduler {
         });
         logger.success(`Task runner completed successfully`);
         logger.debug(`Task runner result:`, result);
-        
+
         // 记录每个任务的完成状态
         tasks.forEach((task) => {
           results.push({ task: task.name, status: 'completed' });
@@ -648,7 +661,7 @@ export class CronerScheduler {
   // 重新加载任务配置
   async reloadTasks() {
     logger.info('Reloading task configurations...');
-    
+
     // 停止所有现有的 cron jobs
     for (const [taskId, cronJob] of this.cronJobs) {
       cronJob.stop();

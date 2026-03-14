@@ -59,10 +59,12 @@ async function fetchGitHubRepoData(fullName: string) {
 export async function addProjectToRepo({
   name,
   description,
+  type,
   repoId,
 }: {
   name: string;
   description: string;
+  type: "client" | "server" | "application" | "skill" | "persona";
   repoId: string;
 }) {
   const createdProjects = await db
@@ -73,6 +75,7 @@ export async function addProjectToRepo({
       repoId,
       name,
       description,
+      type,
       slug: slugify(name).toLowerCase(),
       status: "active",
     })

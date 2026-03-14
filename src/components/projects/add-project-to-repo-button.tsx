@@ -23,10 +23,27 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { PROJECT_TYPES } from "@/drizzle/constants";
+
+const PROJECT_TYPE_LABELS: Record<(typeof PROJECT_TYPES)[number], string> = {
+  client: "Client",
+  server: "Server",
+  application: "Application",
+  skill: "Skill",
+  persona: "Persona",
+};
 
 const formSchema = z.object({
   name: z.string().min(2),
   description: z.string().min(10),
+  type: z.enum(PROJECT_TYPES),
 });
 
 export function AddProjectToRepoButton({ repoId }: { repoId: string }) {
@@ -34,7 +51,7 @@ export function AddProjectToRepoButton({ repoId }: { repoId: string }) {
   const router = useRouter();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: { name: "", description: "" },
+    defaultValues: { name: "", description: "", type: "application" },
   });
 
   const isPending = form.formState.isSubmitting;
@@ -83,7 +100,7 @@ export function AddProjectToRepoButton({ repoId }: { repoId: string }) {
                   </FormItem>
                 )}
               />
-              <Label htmlFor="name" className="text-right">
+              <Label htmlFor="description" className="text-right">
                 描述
               </Label>
               <FormField
@@ -94,6 +111,36 @@ export function AddProjectToRepoButton({ repoId }: { repoId: string }) {
                     <FormControl>
                       <Input placeholder="" {...field} />
                     </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <Label htmlFor="type" className="text-right">
+                类型
+              </Label>
+              <FormField
+                control={form.control}
+                name="type"
+                render={({ field }) => (
+                  <FormItem>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                      value={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="选择类型" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {PROJECT_TYPES.map((t) => (
+                          <SelectItem key={t} value={t}>
+                            {PROJECT_TYPE_LABELS[t]}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}

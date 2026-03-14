@@ -1,0 +1,1 @@
+ALTER TABLE "projects" ADD COLUMN "skill_md_path" text DEFAULT 'SKILL.md';

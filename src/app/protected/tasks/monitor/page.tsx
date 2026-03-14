@@ -396,11 +396,11 @@ export default function TaskMonitorPage() {
   // 显示认证加载状态
   if (authLoading) {
     return (
-      <div className="container mx-auto p-6">
-        <div className="flex items-center justify-center h-64">
+      <div className="container mx-auto px-4 py-6 sm:px-6 sm:py-8">
+        <div className="flex min-h-[16rem] items-center justify-center">
           <div className="flex flex-col items-center gap-4">
-            <Clock className="h-8 w-8 animate-spin" />
-            <div className="text-lg">验证认证状态...</div>
+            <Clock className="h-8 w-8 animate-spin text-muted-foreground" />
+            <div className="text-sm sm:text-base">验证认证状态...</div>
           </div>
         </div>
       </div>
@@ -410,11 +410,11 @@ export default function TaskMonitorPage() {
   // 显示错误状态
   if (error) {
     return (
-      <div className="container mx-auto p-6">
-        <div className="flex items-center justify-center h-64">
-          <div className="flex flex-col items-center gap-4">
+      <div className="container mx-auto px-4 py-6 sm:px-6 sm:py-8">
+        <div className="flex min-h-[16rem] items-center justify-center">
+          <div className="flex flex-col items-center gap-4 px-2">
             <AlertTriangle className="h-8 w-8 text-red-500" />
-            <div className="text-lg text-red-600">{error}</div>
+            <div className="text-center text-sm text-red-600 sm:text-base">{error}</div>
             <Button onClick={fetchData}>重试</Button>
           </div>
         </div>
@@ -423,28 +423,29 @@ export default function TaskMonitorPage() {
   }
 
   return (
-    <div className="container mx-auto p-6">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-3xl font-bold">任务监控中心</h1>
-          <p className="text-muted-foreground">实时监控和管理定时任务</p>
+    <div className="container mx-auto px-4 py-6 sm:px-6 sm:py-8 lg:max-w-5xl">
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">任务监控中心</h1>
+          <p className="mt-1 text-sm text-muted-foreground">实时监控和管理定时任务</p>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center gap-3 sm:gap-4">
           <div className="flex items-center space-x-2">
             <Switch
               id="auto-refresh"
               checked={autoRefresh}
               onCheckedChange={setAutoRefresh}
             />
-            <Label htmlFor="auto-refresh">自动刷新</Label>
+            <Label htmlFor="auto-refresh" className="text-sm">自动刷新</Label>
           </div>
           <Button
             variant="outline"
             size="sm"
             onClick={fetchData}
             disabled={loading}
+            className="shrink-0"
           >
-            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`h-4 w-4 sm:mr-2 ${loading ? 'animate-spin' : ''}`} />
             刷新
           </Button>
         </div>
@@ -452,41 +453,43 @@ export default function TaskMonitorPage() {
 
       {/* 调度器状态卡片 */}
       <Card className="mb-6">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Activity className="h-5 w-5" />
+        <CardHeader className="pb-3 sm:pb-6">
+          <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+            <Activity className="h-5 w-5 shrink-0" />
             调度器状态
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Badge variant={schedulerRunning ? "default" : "secondary"}>
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div className="flex flex-wrap items-center gap-2 gap-y-1 sm:gap-4">
+              <Badge variant={schedulerRunning ? "default" : "secondary"} className="shrink-0">
                 {schedulerRunning ? "运行中" : "已停止"}
               </Badge>
               <span className="text-sm text-muted-foreground">
                 已调度任务: {schedulerStatus?.taskCount || 0} 个
               </span>
               <span className="text-sm text-muted-foreground">
-                运行中任务: {schedulerStatus?.runningTasks.length || 0} 个
+                运行中任务: {schedulerStatus?.runningTasks?.length ?? 0} 个
               </span>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               {schedulerRunning ? (
                 <Button
                   variant="destructive"
                   size="sm"
                   onClick={stopScheduler}
+                  className="shrink-0"
                 >
-                  <Square className="h-4 w-4 mr-2" />
+                  <Square className="h-4 w-4 sm:mr-2" />
                   停止调度器
                 </Button>
               ) : (
                 <Button
                   size="sm"
                   onClick={startScheduler}
+                  className="shrink-0"
                 >
-                  <Play className="h-4 w-4 mr-2" />
+                  <Play className="h-4 w-4 sm:mr-2" />
                   启动调度器
                 </Button>
               )}
@@ -494,8 +497,9 @@ export default function TaskMonitorPage() {
                 variant="outline"
                 size="sm"
                 onClick={reloadTasks}
+                className="shrink-0"
               >
-                <RefreshCw className="h-4 w-4 mr-2" />
+                <RefreshCw className="h-4 w-4 sm:mr-2" />
                 重载任务
               </Button>
             </div>
@@ -505,11 +509,11 @@ export default function TaskMonitorPage() {
 
       {/* 任务列表 */}
       <Tabs defaultValue="all" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="all">全部任务 ({tasks.length})</TabsTrigger>
-          <TabsTrigger value="daily">每日任务 ({tasks.filter(t => t.isDaily).length})</TabsTrigger>
-          <TabsTrigger value="weekly">每周任务 ({tasks.filter(t => t.isWeekly).length})</TabsTrigger>
-          <TabsTrigger value="monthly">每月任务 ({tasks.filter(t => t.isMonthly).length})</TabsTrigger>
+        <TabsList className="flex w-full overflow-x-auto rounded-lg p-1 sm:inline-flex sm:w-auto">
+          <TabsTrigger value="all" className="shrink-0">全部任务 ({tasks.length})</TabsTrigger>
+          <TabsTrigger value="daily" className="shrink-0">每日任务 ({tasks.filter(t => t.isDaily).length})</TabsTrigger>
+          <TabsTrigger value="weekly" className="shrink-0">每周任务 ({tasks.filter(t => t.isWeekly).length})</TabsTrigger>
+          <TabsTrigger value="monthly" className="shrink-0">每月任务 ({tasks.filter(t => t.isMonthly).length})</TabsTrigger>
         </TabsList>
 
         <TabsContent value="all" className="space-y-4">
@@ -603,8 +607,8 @@ function TaskList({
   if (tasks.length === 0) {
     return (
       <Card>
-        <CardContent className="flex items-center justify-center h-32">
-          <p className="text-muted-foreground">暂无任务</p>
+        <CardContent className="flex min-h-[8rem] items-center justify-center py-8">
+          <p className="text-sm text-muted-foreground sm:text-base">暂无任务</p>
         </CardContent>
       </Card>
     );
@@ -615,21 +619,21 @@ function TaskList({
       {tasks.map((task) => {
         const isRunning = runningTasks.has(task.id);
         const latestExecution = task.recentExecutions?.[0];
-        
+
         return (
-          <Card key={task.id} className="hover:shadow-md transition-shadow">
-            <CardHeader>
-              <div className="flex items-start justify-between">
-                <div className="flex items-start gap-3">
-                  {getTaskTypeIcon(task.taskType)}
-                  <div>
-                    <CardTitle className="text-lg">{task.name}</CardTitle>
-                    <CardDescription className="mt-1">
+          <Card key={task.id} className="overflow-hidden transition-shadow hover:shadow-md">
+            <CardHeader className="space-y-3 pb-3 sm:pb-6">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div className="flex min-w-0 flex-1 items-start gap-3">
+                  <span className="shrink-0">{getTaskTypeIcon(task.taskType)}</span>
+                  <div className="min-w-0">
+                    <CardTitle className="break-words text-base sm:text-lg">{task.name}</CardTitle>
+                    <CardDescription className="mt-1 line-clamp-2 sm:line-clamp-none">
                       {task.description}
                     </CardDescription>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
                   <Badge variant={task.isEnabled ? "default" : "secondary"}>
                     {task.isEnabled ? "已启用" : "已禁用"}
                   </Badge>
@@ -641,26 +645,26 @@ function TaskList({
                 </div>
               </div>
             </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-                <div>
+            <CardContent className="pt-0">
+              <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="min-w-0">
                   <p className="text-sm font-medium text-muted-foreground">定时表达式</p>
-                  <p className="text-sm">{formatCronExpression(task.cronExpression)}</p>
+                  <p className="break-words text-sm">{formatCronExpression(task.cronExpression)}</p>
                 </div>
-                <div>
+                <div className="min-w-0">
                   <p className="text-sm font-medium text-muted-foreground">上次执行</p>
-                  <p className="text-sm">{formatDate(task.status?.lastRunAt)}</p>
+                  <p className="truncate text-sm sm:whitespace-normal">{formatDate(task.status?.lastRunAt)}</p>
                 </div>
-                <div>
+                <div className="min-w-0">
                   <p className="text-sm font-medium text-muted-foreground">下次执行</p>
-                  <p className="text-sm">{formatDate(task.status?.nextRunAt)}</p>
+                  <p className="truncate text-sm sm:whitespace-normal">{formatDate(task.status?.nextRunAt)}</p>
                 </div>
-                <div>
+                <div className="min-w-0">
                   <p className="text-sm font-medium text-muted-foreground">最新状态</p>
                   <div className="flex items-center gap-2">
                     {latestExecution && getStatusIcon(latestExecution.status)}
                     <span className="text-sm">
-                      {latestExecution ? latestExecution.status : '未执行'}
+                      {latestExecution ? latestExecution.status : "未执行"}
                     </span>
                   </div>
                 </div>
@@ -669,39 +673,39 @@ function TaskList({
               {/* 最新执行记录 */}
               {latestExecution && (
                 <div className="border-t pt-4">
-                  <p className="text-sm font-medium text-muted-foreground mb-2">最新执行记录</p>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                    <div>
+                  <p className="mb-2 text-sm font-medium text-muted-foreground">最新执行记录</p>
+                  <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-3">
+                    <div className="min-w-0">
                       <span className="text-muted-foreground">开始时间:</span>
-                      <span className="ml-2">{formatDate(latestExecution.startedAt)}</span>
+                      <span className="ml-2 break-words">{formatDate(latestExecution.startedAt)}</span>
                     </div>
-                    <div>
+                    <div className="min-w-0">
                       <span className="text-muted-foreground">执行时长:</span>
                       <span className="ml-2">{formatDuration(latestExecution.duration)}</span>
                     </div>
-                    <div>
+                    <div className="min-w-0">
                       <span className="text-muted-foreground">触发方式:</span>
-                      <span className="ml-2">{latestExecution.triggeredBy === 'system' ? '系统' : '手动'}</span>
+                      <span className="ml-2">{latestExecution.triggeredBy === "system" ? "系统" : "手动"}</span>
                     </div>
                   </div>
                   {latestExecution.error && (
-                    <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-sm text-red-700">
+                    <div className="mt-2 rounded border border-red-200 bg-red-50 p-2 text-sm text-red-700 dark:border-red-800 dark:bg-red-950/30 dark:text-red-400">
                       <p className="font-medium">错误信息:</p>
-                      <p>{latestExecution.error}</p>
+                      <p className="break-words">{latestExecution.error}</p>
                     </div>
                   )}
                 </div>
               )}
 
               {/* 操作按钮 */}
-              <div className="flex items-center justify-between mt-4 pt-4 border-t">
+              <div className="mt-4 flex flex-col gap-3 border-t pt-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center space-x-2">
                   <Switch
                     id={`task-${task.id}`}
                     checked={task.isEnabled}
                     onCheckedChange={(enabled) => onToggle(task.id, enabled)}
                   />
-                  <Label htmlFor={`task-${task.id}`}>启用任务</Label>
+                  <Label htmlFor={`task-${task.id}`} className="text-sm">启用任务</Label>
                 </div>
                 <div className="flex gap-2">
                   {isRunning ? (
@@ -709,8 +713,9 @@ function TaskList({
                       variant="destructive"
                       size="sm"
                       onClick={() => onStop(task.id)}
+                      className="shrink-0"
                     >
-                      <Square className="h-4 w-4 mr-2" />
+                      <Square className="h-4 w-4 sm:mr-2" />
                       停止
                     </Button>
                   ) : (
@@ -718,8 +723,9 @@ function TaskList({
                       size="sm"
                       onClick={() => onExecute(task.id)}
                       disabled={!task.isEnabled}
+                      className="shrink-0"
                     >
-                      <Play className="h-4 w-4 mr-2" />
+                      <Play className="h-4 w-4 sm:mr-2" />
                       执行
                     </Button>
                   )}

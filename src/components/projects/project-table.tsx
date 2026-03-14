@@ -20,40 +20,40 @@ type Props = {
 
 export function ProjectTable({ projects }: Props) {
   return (
-    <Table>
+    <Table className="min-w-[640px]">
       <TableHeader>
         <TableRow>
-          <TableHead className="w-[100px]">Logo</TableHead>
-          <TableHead>项目名称</TableHead>
-          <TableHead>添加时间</TableHead>
-          <TableHead>GitHub</TableHead>
-          <TableHead>Packages</TableHead>
-          <TableHead className="text-right">Stars</TableHead>
-          <TableHead className="text-center">操作</TableHead>
+          <TableHead className="w-[80px] sm:w-[100px] shrink-0">Logo</TableHead>
+          <TableHead className="min-w-[180px]">项目名称</TableHead>
+          <TableHead className="whitespace-nowrap w-[100px] hidden md:table-cell">添加时间</TableHead>
+          <TableHead className="min-w-[120px] hidden sm:table-cell">GitHub</TableHead>
+          <TableHead className="min-w-[80px] hidden lg:table-cell">Packages</TableHead>
+          <TableHead className="text-right w-[70px] shrink-0">Stars</TableHead>
+          <TableHead className="text-center w-[56px] shrink-0">操作</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         {projects.map((project) => (
           <TableRow key={project.slug}>
-            <TableCell>
+            <TableCell className="shrink-0">
               <ProjectLogo project={project} size={50} />
             </TableCell>
-            <TableCell>
-              <div className="flex flex-col gap-4">
+            <TableCell className="min-w-0">
+              <div className="flex flex-col gap-1 sm:gap-2">
                 <Link
                   href={`/protected/projects/${project.slug}`}
-                  className="hover:underline"
+                  className="hover:underline font-medium break-words"
                 >
                   {project.name}
                 </Link>
-                <span className="text-muted-foreground">
+                <span className="text-muted-foreground text-sm line-clamp-2">
                   {project.description}
                 </span>
-                {project.comments && <div>{project.comments}</div>}
-                <div className="flex flex-wrap gap-2">
+                {project.comments && <div className="text-sm">{project.comments}</div>}
+                <div className="flex flex-wrap gap-1.5">
                   {project.tags.map((tag) => (
                     <a
-                      href={`/projects/?tag=${tag}`}
+                      href={`/protected/projects?tag=${tag}`}
                       className={badgeVariants({ variant: "secondary" })}
                       key={tag}
                     >
@@ -63,37 +63,40 @@ export function ProjectTable({ projects }: Props) {
                 </div>
               </div>
             </TableCell>
-            <TableCell>
+            <TableCell className="whitespace-nowrap hidden md:table-cell">
               {project.createdAt.toISOString().slice(0, 10)}
             </TableCell>
-            <TableCell>
-              <div className="flex flex-col gap-4">
-                {project.repo?.full_name || "No repo"}
+            <TableCell className="hidden sm:table-cell min-w-0">
+              <div className="flex flex-col gap-1">
+                <span className="truncate max-w-[180px]" title={project.repo?.full_name ?? undefined}>
+                  {project.repo?.full_name || "No repo"}
+                </span>
                 {project.repo?.archived && (
-                  <div>
-                    <Badge variant="destructive">Archived</Badge>
-                  </div>
+                  <Badge variant="destructive" className="w-fit">Archived</Badge>
                 )}
               </div>
             </TableCell>
-            <TableCell>
+            <TableCell className="hidden lg:table-cell min-w-0">
               {project.packages.filter(Boolean).length > 0 ? (
-                <div className="flex flex-col gap-4">
-                  {project.packages.map((pkg) => (
-                    <div key={pkg}>{pkg}</div>
+                <div className="flex flex-col gap-1">
+                  {project.packages.slice(0, 3).map((pkg) => (
+                    <div key={pkg} className="truncate max-w-[120px]">{pkg}</div>
                   ))}
+                  {project.packages.length > 3 && (
+                    <span className="text-muted-foreground text-xs">+{project.packages.length - 3}</span>
+                  )}
                 </div>
               ) : (
-                <span className="italic text-muted-foreground">No package</span>
+                <span className="italic text-muted-foreground text-sm">—</span>
               )}
             </TableCell>
-            <TableCell className="text-right">
+            <TableCell className="text-right shrink-0">
               {formatStars(project.stars)}
             </TableCell>
-            <TableCell className="text-center">
-              <ProjectActions 
-                projectId={project.id} 
-                projectName={project.name} 
+            <TableCell className="text-center shrink-0">
+              <ProjectActions
+                projectId={project.id}
+                projectName={project.name}
               />
             </TableCell>
           </TableRow>

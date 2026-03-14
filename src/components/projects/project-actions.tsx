@@ -1,6 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -10,11 +18,11 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Loader2, Webhook, RefreshCw } from "lucide-react";
+import { Loader2, Webhook, RefreshCw, MoreVertical, Trash2 } from "lucide-react";
+import { deleteProjectAction } from "@/app/protected/projects/actions";
 
 interface ProjectActionsProps {
   projectId: string;
@@ -22,11 +30,13 @@ interface ProjectActionsProps {
 }
 
 export function ProjectActions({ projectId, projectName }: ProjectActionsProps) {
+  const router = useRouter();
   const [webhookUrl, setWebhookUrl] = useState("");
   const [isWebhookDialogOpen, setIsWebhookDialogOpen] = useState(false);
   const [isWebhookLoading, setIsWebhookLoading] = useState(false);
   const [isSyncLoading, setIsSyncLoading] = useState(false);
-
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isDeleteLoading, setIsDeleteLoading] = useState(false);
 
   const handleWebhook = async () => {
     setIsWebhookLoading(true);
@@ -79,15 +89,72 @@ export function ProjectActions({ projectId, projectName }: ProjectActionsProps) 
     }
   };
 
+  const handleDelete = async () => {
+    setIsDeleteLoading(true);
+    try {
+      const result = await deleteProjectAction(projectId);
+      if (result.success) {
+        toast.success("项目已删除");
+        setIsDeleteDialogOpen(false);
+        router.refresh();
+      } else {
+        toast.error(result.error ?? "删除失败");
+      }
+    } catch (error) {
+      toast.error("网络错误，请稍后重试");
+    } finally {
+      setIsDeleteLoading(false);
+    }
+  };
+
   return (
-    <div className="flex gap-2">
-      <Dialog open={isWebhookDialogOpen} onOpenChange={setIsWebhookDialogOpen}>
-        <DialogTrigger asChild>
-          <Button variant="outline" size="sm">
-            <Webhook className="h-4 w-4 mr-1" />
-            Webhook
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="操作菜单">
+            <MoreVertical className="h-4 w-4" />
           </Button>
-        </DialogTrigger>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem
+            onSelect={(e) => {
+              e.preventDefault();
+              setIsWebhookDialogOpen(true);
+            }}
+          >
+            <Webhook className="h-4 w-4 mr-2" />
+            Webhook
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onSelect={(e) => {
+              e.preventDefault();
+              handleSync();
+            }}
+            disabled={isSyncLoading}
+          >
+            {isSyncLoading ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <RefreshCw className="h-4 w-4 mr-2" />
+            )}
+            同步
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            onSelect={(e) => {
+              e.preventDefault();
+              setIsDeleteDialogOpen(true);
+            }}
+            className="text-destructive focus:text-destructive"
+          >
+            <Trash2 className="h-4 w-4 mr-2" />
+            删除
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      {/* Webhook 弹窗 */}
+      <Dialog open={isWebhookDialogOpen} onOpenChange={setIsWebhookDialogOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>发送Webhook</DialogTitle>
@@ -123,19 +190,34 @@ export function ProjectActions({ projectId, projectName }: ProjectActionsProps) 
         </DialogContent>
       </Dialog>
 
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={handleSync}
-        disabled={isSyncLoading}
-      >
-        {isSyncLoading ? (
-          <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-        ) : (
-          <RefreshCw className="h-4 w-4 mr-1" />
-        )}
-        同步
-      </Button>
-    </div>
+      {/* 删除确认弹窗 */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>确认删除项目</DialogTitle>
+            <DialogDescription>
+              确定要删除项目 &quot;{projectName}&quot; 吗？此操作将级联删除关联的标签、包等数据，且不可恢复。
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsDeleteDialogOpen(false)}
+              disabled={isDeleteLoading}
+            >
+              取消
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={isDeleteLoading}
+            >
+              {isDeleteLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              确定删除
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
-} 
+}
