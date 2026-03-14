@@ -1,14 +1,17 @@
+import { eq } from "drizzle-orm";
 import invariant from "tiny-invariant";
 import { redirect } from "next/navigation";
 
 import { getAllTags, findProjects } from "@/drizzle/projects";
+import { AddProjectButton } from "@/components/projects/add-project-button";
 import { ProjectLogo } from "@/components/projects/project-logo";
 import { ReadmeViewer } from "@/components/projects/readme-viewer";
 import { projectService } from "@/lib/db";
-import { db } from "@/drizzle/database";
+import { db, schema } from "@/drizzle/database";
 import { createClient } from "@/lib/supabase/server";
 import { ViewProjectPackages } from "./view-packages";
 import { ViewProject } from "./view-project";
+import { ViewProjectSkills } from "./view-project-skills";
 import { ViewRepo } from "./view-repo";
 import { ViewSnapshots } from "./view-snapshots";
 import { ViewTags } from "./view-tags";
@@ -69,19 +72,46 @@ export default async function ViewProjectPage(props: PageProps) {
     sameOwnerProjects,
   };
 
+  const projectSkills =
+    project.type === "skill"
+      ? await db.query.projectSkills.findMany({
+          where: eq(schema.projectSkills.projectId, project.id),
+          columns: {
+            id: true,
+            skillDir: true,
+            name: true,
+            syncedToWebAt: true,
+            lastSyncError: true,
+            lastSyncAttemptAt: true,
+          },
+        })
+      : [];
+
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center gap-4">
-        <ProjectLogo project={project} size={100} />
-        <div className="flex flex-col gap-4">
-          <h1 className="flex scroll-m-20 items-center gap-2 text-3xl font-extrabold tracking-tight lg:text-4xl">
-            {project.name}
-          </h1>
-          <div>{project.description}</div>
+      <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-start">
+        <div className="flex min-w-0 items-center gap-4">
+          <ProjectLogo project={project} size={100} />
+          <div className="flex min-w-0 flex-col gap-4">
+            <h1 className="flex scroll-m-20 items-center gap-2 text-3xl font-extrabold tracking-tight lg:text-4xl">
+              {project.name}
+            </h1>
+            <div>{project.description}</div>
+          </div>
+        </div>
+        <div className="shrink-0">
+          <AddProjectButton />
         </div>
       </div>
       <ViewProject project={project} />
       <ViewTags project={project} allTags={allTags} />
+      {project.type === "skill" && (
+        <ViewProjectSkills
+          projectId={project.id}
+          projectSlug={project.slug}
+          skills={projectSkills}
+        />
+      )}
       {project.repo ? <ViewRepo project={project} relatedProjectsData={relatedProjectsData} /> : <>No repository!</>}
       <ViewProjectPackages project={project} />
       {project.repo && (

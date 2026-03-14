@@ -8,7 +8,7 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
-import { createProjectAction, type CreateProjectType } from "@/actions/projects-actions";
+import { createProjectAction } from "@/actions/projects-actions";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -28,6 +28,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { CreateProjectType } from "@/drizzle/projects";
 
 const PROJECT_TYPE_OPTIONS: { value: CreateProjectType; label: string }[] = [
   { value: "skill", label: "Skills" },
@@ -40,7 +41,7 @@ const PROJECT_TYPE_OPTIONS: { value: CreateProjectType; label: string }[] = [
 
 const formSchema = z.object({
   gitHubURL: z.string().url().startsWith("https://github.com/", "请输入有效的 GitHub 仓库 URL"),
-  type: z.enum(["skill", "application", "client", "server"], {
+  type: z.enum(["skill", "application", "client", "server", "persona"], {
     required_error: "请选择项目类型",
   }),
 });

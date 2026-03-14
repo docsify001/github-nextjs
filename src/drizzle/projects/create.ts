@@ -1,5 +1,6 @@
 "use server";
 
+import { and, eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import slugify from "slugify";
 import { z } from "zod";
@@ -10,15 +11,59 @@ import { generateProjectDefaultSlug } from "./project-helpers";
 
 export type CreateProjectType = "skill" | "application" | "client" | "server" | "persona";
 
+const PROJECT_ALREADY_EXISTS_MSG = "项目已经存在";
+
 export async function createProject(gitHubURL: string, type: CreateProjectType) {
   const fullName = gitHubURL.split("/").slice(-2).join("/");
+  const [owner, name] = fullName.split("/");
+  if (!owner || !name) {
+    throw new Error("无效的 GitHub 仓库 URL");
+  }
+
   const repoData = await fetchGitHubRepoData(fullName);
 
-  const repoId = nanoid();
+  // 若该 repo 已存在且已有项目，直接提示项目已存在
+  const existingRepo = await db.query.repos.findFirst({
+    where: and(eq(schema.repos.owner, owner), eq(schema.repos.name, name)),
+    columns: { id: true },
+  });
+  if (existingRepo) {
+    const existingProject = await db.query.projects.findFirst({
+      where: eq(schema.projects.repoId, existingRepo.id),
+      columns: { id: true },
+    });
+    if (existingProject) {
+      throw new Error(PROJECT_ALREADY_EXISTS_MSG);
+    }
+  }
+
   const slug = generateProjectDefaultSlug(repoData.name);
+  const now = new Date();
+  const updateSet = {
+    description: repoData.description,
+    default_branch: repoData.default_branch,
+    homepage: repoData.homepage,
+    stars: repoData.stars,
+    pushed_at: repoData.pushed_at,
+    created_at: repoData.created_at,
+    topics: repoData.topics,
+    updated_at: now,
+  };
 
   const createdProjects = await db.transaction(async (tx) => {
-    await tx.insert(schema.repos).values({ id: repoId, ...repoData });
+    const [repo] = await tx
+      .insert(schema.repos)
+      .values({ id: nanoid(), ...repoData })
+      .onConflictDoUpdate({
+        target: [schema.repos.owner, schema.repos.name],
+        set: updateSet,
+      })
+      .returning();
+
+    if (!repo) throw new Error("创建或更新仓库失败");
+    const repoId = repo.id;
+
+    const skillMdPath = type === "skill" ? "skills" : undefined;
 
     return await tx
       .insert(schema.projects)
@@ -31,6 +76,7 @@ export async function createProject(gitHubURL: string, type: CreateProjectType) 
         url: repoData.homepage,
         status: "active",
         type,
+        ...(skillMdPath != null && { skillMdPath }),
       })
       .returning();
   });

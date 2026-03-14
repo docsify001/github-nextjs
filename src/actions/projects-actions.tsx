@@ -7,7 +7,7 @@ import { addProjectToRepo, createProject, CreateProjectType } from "@/drizzle/pr
 import { db } from "@/drizzle/database";
 import { createReadmeSyncJob } from "@/lib/readme-sync/job-helpers";
 import { runReadmeSyncForRepo } from "@/lib/readme-sync/run-readme-sync-for-repo";
-
+import { runSkillSyncForProject } from "@/lib/skill-sync/run-skill-sync-for-project";
 
 export async function createProjectAction(gitHubURL: string, type: CreateProjectType) {
   const project = await createProject(gitHubURL, type);
@@ -21,7 +21,35 @@ export async function createProjectAction(gitHubURL: string, type: CreateProject
   } catch {
     // 不影响创建结果，仅记录失败
   }
+  if (type === "skill") {
+    console.log("[skill-sync] 创建 skill 项目，触发异步 skill 同步", {
+      projectId: project.id,
+      slug: project.slug,
+    });
+    runSkillSyncForProject(db, project.id)
+      .then((result) => {
+        console.log("[skill-sync] 异步 skill 同步完成", {
+          projectId: project.id,
+          slug: project.slug,
+          success: result.success,
+          synced: result.synced,
+          error: result.error,
+        });
+      })
+      .catch((err) => {
+        console.error("[skill-sync] 异步 skill 同步失败", {
+          projectId: project.id,
+          slug: project.slug,
+          error: err instanceof Error ? err.message : String(err),
+        });
+      });
+  }
   return project;
+}
+
+export async function retrySkillSyncAction(projectId: string) {
+  const result = await runSkillSyncForProject(db, projectId);
+  return result;
 }
 
 export async function addProjectToRepoAction({
