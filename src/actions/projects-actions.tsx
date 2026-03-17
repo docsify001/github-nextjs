@@ -4,7 +4,8 @@
 // > It is not allowed to define inline "use server" annotated Server Actions in Client Components.
 // > To use Server Actions in a Client Component, you can either export them from a separate file with "use server" at the top, or pass them down through props from a Server Component."
 import { addProjectToRepo, createProject, CreateProjectType } from "@/drizzle/projects";
-import { db } from "@/drizzle/database";
+import { db, schema } from "@/drizzle/database";
+import { eq } from "drizzle-orm";
 import { runSkillSyncForProject } from "@/lib/skill-sync/run-skill-sync-for-project";
 import { createTaskRunner } from "@/lib/tasks/task-runner";
 import { updateGitHubDataTask } from "@/lib/tasks/bestofjs/update-github-data.task";
@@ -52,8 +53,8 @@ async function runUpdateGitHubDataTask(project: any) {
     // 创建任务运行器
     const runner = createTaskRunner([updateGitHubDataTask as any]);
 
-    // 获取项目的 fullName
-    const fullName = `${project.repo.owner}/${project.repo.name}`;
+    // 获取项目对应仓库的 fullName（owner/name）
+    const fullName = await getRepoFullName(project);
 
     // 运行任务，只处理当前项目对应的 repo
     const result = await runner.run({
@@ -72,6 +73,28 @@ async function runUpdateGitHubDataTask(project: any) {
     console.error(`Task runner failed for project: ${project.name}:`, error);
     throw error;
   }
+}
+
+async function getRepoFullName(project: any): Promise<string> {
+  // 如果调用方已经携带了 repo 信息，优先使用
+  if (project?.repo?.owner && project?.repo?.name) {
+    return `${project.repo.owner}/${project.repo.name}`;
+  }
+
+  const repoId = project.repoId ?? project.repo_id ?? project?.repo?.id;
+  if (!repoId) {
+    throw new Error("项目未关联仓库，无法更新 GitHub 数据");
+  }
+
+  const repo = await db.query.repos.findFirst({
+    where: eq(schema.repos.id, repoId),
+  });
+
+  if (!repo) {
+    throw new Error("未找到项目对应的仓库，无法更新 GitHub 数据");
+  }
+
+  return `${repo.owner}/${repo.name}`;
 }
 
 export async function retrySkillSyncAction(projectId: string) {
