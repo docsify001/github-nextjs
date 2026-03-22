@@ -20,6 +20,7 @@ import {
   sendSkillToWeb,
 } from "@/lib/skill-sync/send-skill-to-web";
 import { translateSkillToZh } from "@/lib/skill-sync/translate-skill";
+import { translator } from "../translate/translator";
 
 const SKILLS_WEBHOOK_URL = process.env.SKILLS_WEBHOOK_URL;
 const SKILLS_WEBHOOK_TOKEN = process.env.SKILLS_WEBHOOK_TOKEN;
@@ -114,13 +115,18 @@ export async function runSkillSyncForProject(
       let readmeZh = "";
       try {
         log.info("skill 翻译中", ctx);
-        const translated = await translateSkillToZh(parsed.description, parsed.readme);
-        descriptionZh = translated.descriptionZh;
-        readmeZh = translated.readmeZh;
+        descriptionZh = await translator.translateDescription(parsed.description);
+        log.info("skill 描述翻译完成", ctx);
+      } catch (e) {
+        console.error("描述翻译失败:", e);
+      }
+
+      try {
+        log.info("skill 翻译中", ctx);
+        readmeZh = await translator.translateReadme(parsed.readme);
         log.info("skill 翻译完成", ctx);
-      } catch (translateErr) {
-        const translateMsg = translateErr instanceof Error ? translateErr.message : String(translateErr);
-        log.error("skill 翻译失败，已保存英文内容，中文为空", { ...ctx, error: translateMsg });
+      } catch (e) {
+        console.error("README翻译失败:", e);
       }
 
       const hash = contentHash(raw);
@@ -258,4 +264,113 @@ export async function runSkillSyncForProject(
     log.error("project sync failed", { project: project.slug, error: msg });
     return { success: false, synced: 0, error: msg };
   }
+}
+
+/**
+ * 在发送 webhook 前确保 skill 项目的简介与 readme 已翻译并落库，必要时再同步 skill webhook。
+ * - 若 project_skills 无记录，则执行完整 runSkillSyncForProject。
+ * - 若有记录但存在 description_zh/readme_zh 为空，则仅翻译并更新这些行，再按需发送 skill webhook。
+ */
+export async function ensureSkillTranslationsAndSync(
+  db: DB,
+  projectId: string,
+  options: RunSkillSyncOptions = {}
+): Promise<{ ok: boolean; error?: string }> {
+  const log = options.logger ?? defaultLogger();
+
+  const projectService = new ProjectService(db);
+  let project: Awaited<ReturnType<ProjectService["getProjectById"]>>;
+  try {
+    project = await projectService.getProjectById(projectId);
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    log.error("ensureSkillTranslationsAndSync: project load failed", { projectId, error: msg });
+    return { ok: false, error: msg };
+  }
+
+  if ((project as { type?: string }).type !== "skill") {
+    return { ok: true };
+  }
+
+  const repo = project.repo;
+  if (!repo) {
+    log.warn("ensureSkillTranslationsAndSync: skill project has no repo", { projectId });
+    return { ok: false, error: "Project has no repo" };
+  }
+
+  const owner = repo.owner;
+  const name = repo.name;
+
+  const skills = await db.query.projectSkills.findMany({
+    where: eq(schema.projectSkills.projectId, projectId),
+  });
+
+  if (skills.length === 0) {
+    log.info("ensureSkillTranslationsAndSync: no project_skills, running full skill sync", { projectId });
+    const result = await runSkillSyncForProject(db, projectId, options);
+    return { ok: result.success, error: result.error };
+  }
+
+  const needTranslation = skills.filter(
+    (s) => !s.descriptionZh?.trim() || !s.readmeZh?.trim()
+  );
+
+  if (needTranslation.length > 0) {
+    log.info("ensureSkillTranslationsAndSync: translating missing zh", {
+      projectId,
+      count: needTranslation.length,
+    });
+    for (const row of needTranslation) {
+      try {
+        const { descriptionZh, readmeZh } = await translateSkillToZh(
+          row.description,
+          row.readme
+        );
+        await db
+          .update(schema.projectSkills)
+          .set({
+            descriptionZh: descriptionZh || row.descriptionZh,
+            readmeZh: readmeZh || row.readmeZh,
+            updatedAt: new Date(),
+          })
+          .where(
+            and(
+              eq(schema.projectSkills.projectId, projectId),
+              eq(schema.projectSkills.skillDir, row.skillDir)
+            )
+          );
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        log.error("ensureSkillTranslationsAndSync: translate failed for skill", {
+          projectId,
+          skillDir: row.skillDir,
+          error: msg,
+        });
+      }
+    }
+  }
+
+  if (SKILLS_WEBHOOK_URL?.trim()) {
+    const updatedSkills = await db.query.projectSkills.findMany({
+      where: eq(schema.projectSkills.projectId, projectId),
+    });
+    for (const skill of updatedSkills) {
+      const payload = buildSkillWebhookPayload({
+        repoOwner: owner,
+        repoName: name,
+        skillDir: skill.skillDir,
+        name: skill.name,
+        description: skill.description,
+        descriptionZh: skill.descriptionZh ?? "",
+        readme: skill.readme,
+        readmeZh: skill.readmeZh ?? "",
+        version: skill.version,
+      });
+      await sendSkillToWeb(SKILLS_WEBHOOK_URL, payload, {
+        token: SKILLS_WEBHOOK_TOKEN,
+      });
+    }
+  }
+
+  return { ok: true };
 }

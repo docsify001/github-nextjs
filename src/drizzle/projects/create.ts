@@ -37,6 +37,15 @@ export async function createProject(gitHubURL: string, type: CreateProjectType) 
     }
   }
 
+  // 同一 owner 下只能有一个相同 name 的项目，提前检查避免唯一索引报错
+  const existingProjectByOwnerAndName = await db.query.projects.findFirst({
+    where: and(eq(schema.projects.owner, owner), eq(schema.projects.name, repoData.name)),
+    columns: { id: true },
+  });
+  if (existingProjectByOwnerAndName) {
+    throw new Error(PROJECT_ALREADY_EXISTS_MSG);
+  }
+
   const slug = generateProjectDefaultSlug(repoData.name);
   const now = new Date();
   const updateSet = {
@@ -69,6 +78,7 @@ export async function createProject(gitHubURL: string, type: CreateProjectType) 
       .insert(schema.projects)
       .values({
         id: nanoid(),
+        owner: repo.owner,
         repoId,
         name: repoData.name,
         slug,
@@ -122,6 +132,7 @@ export async function addProjectToRepo({
       id: nanoid(),
       createdAt: new Date(),
       repoId,
+      owner: "",
       name,
       description,
       type,

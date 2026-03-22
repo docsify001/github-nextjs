@@ -10,6 +10,7 @@ import { runReadmeSyncForRepo } from '@/lib/readme-sync/run-readme-sync-for-repo
 import { createProjectSyncJob } from '@/lib/project-sync/job-helpers';
 import { runStatsAndWebhookPipeline } from '@/lib/project-sync/run-stats-and-webhook';
 import { getFullProjectData as getFullProjectDataShared, fetchProjectData as fetchProjectDataShared, sendWebhookData as sendWebhookDataShared } from '@/lib/project-sync/project-webhook';
+import { upsertHallOfFameFromRepo } from '@/lib/hall-of-fame/hall-of-fame-service';
 
 export const dynamic = "force-dynamic";
 
@@ -126,6 +127,16 @@ export async function POST(request: NextRequest) {
     logger.info(`Full project data retrieved for: ${fullProjectData.name}`);
 
     const repoId = fullProjectData.repo.id;
+
+    // 同步作者到 hall_of_fame（创建项目时）
+    try {
+      await upsertHallOfFameFromRepo(db, fullProjectData.repo, {
+        syncAvatarToOss: true,
+        logger,
+      });
+    } catch (err) {
+      logger.error('Failed to sync hall_of_fame author on project create:', err);
+    }
     try {
       const readmeJob = await createReadmeSyncJob(db, {
         repoId,

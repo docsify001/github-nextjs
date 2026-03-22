@@ -6,35 +6,46 @@ import {
   smallint,
   text,
   timestamp,
+   uniqueIndex,
 } from "drizzle-orm/pg-core";
 
 import { PROJECT_STATUSES, PROJECT_TYPES } from "../constants";
 import { packages } from "./packages";
 import { repos } from "./repos";
 import { tags } from "./tags";
+import { hallOfFame } from "./hall-of-fame";
 
-export const projects = pgTable("projects", {
-  id: text("id").primaryKey(),
-  name: text("name").notNull().unique(),
-  slug: text("slug").notNull().unique(),
-  description: text("description").notNull(),
-  overrideDescription: boolean("override_description"),
-  url: text("url"),
-  overrideURL: boolean("override_url"),
-  status: text("status", { enum: PROJECT_STATUSES }).notNull(),
-  type: text("type", { enum: PROJECT_TYPES }).notNull().default("application"),
-  logo: text("logo"),
-  twitter: text("twitter"),
-  priority: smallint("priority").notNull().default(0),
-  comments: text("comments"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at"),
-  repoId: text("repoId")
-    .references(() => repos.id, { onDelete: "cascade" })
-    .notNull(),
-  // SKILL.md 路径，仅 type=skill 时使用，默认根目录 SKILL.md
-  skillMdPath: text("skill_md_path").default("SKILL.md"),
-});
+export const projects = pgTable(
+  "projects",
+  {
+    id: text("id").primaryKey(),
+    name: text("name").notNull(),
+    owner: text("owner")
+      .notNull()
+      .references(() => hallOfFame.username, { onDelete: "cascade" }),
+    slug: text("slug").notNull().unique(),
+    description: text("description").notNull(),
+    overrideDescription: boolean("override_description"),
+    url: text("url"),
+    overrideURL: boolean("override_url"),
+    status: text("status", { enum: PROJECT_STATUSES }).notNull(),
+    type: text("type", { enum: PROJECT_TYPES }).notNull().default("application"),
+    logo: text("logo"),
+    twitter: text("twitter"),
+    priority: smallint("priority").notNull().default(0),
+    comments: text("comments"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at"),
+    repoId: text("repoId")
+      .references(() => repos.id, { onDelete: "cascade" })
+      .notNull(),
+    // SKILL.md 路径，仅 type=skill 时使用，默认根目录 SKILL.md
+    skillMdPath: text("skill_md_path").default("SKILL.md"),
+  },
+  (table) => [
+    uniqueIndex("projects_owner_name_unique").on(table.owner, table.name),
+  ],
+);
 
 export const projectsToTags = pgTable(
   "projects_to_tags",

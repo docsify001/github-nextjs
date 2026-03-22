@@ -5,6 +5,7 @@ import { schema } from '@/drizzle/database';
 import { verifyApiAuth } from '@/lib/auth/auth-utils';
 import { updateGitHubDataTask } from '@/lib/tasks/bestofjs/update-github-data.task';
 import { createTaskRunner } from '@/lib/tasks/task-runner';
+import { runSkillSyncForProject } from '@/lib/skill-sync/run-skill-sync-for-project';
 import { createConsola } from 'consola';
 
 export const dynamic = "force-dynamic";
@@ -45,7 +46,19 @@ export async function POST(
 
     logger.info(`Starting sync for project: ${project.name} (${projectId})`);
 
-    // 异步执行同步任务
+    // skill 项目：先执行 skill 同步（拉取 SKILL.md、翻译、落库、发送 skill webhook）
+    const isSkill = (project as { type?: string }).type === 'skill';
+    if (isSkill) {
+      runSkillSyncForProject(db, projectId, {
+        logger: { info: logger.info, debug: logger.debug, warn: logger.warn, error: logger.error },
+      }).then((result) => {
+        logger.info(`Skill sync completed for project: ${project.name}`, { success: result.success, synced: result.synced, error: result.error });
+      }).catch((error) => {
+        logger.error(`Skill sync failed for project ${project.name}:`, error);
+      });
+    }
+
+    // 异步执行 GitHub 数据同步任务
     runUpdateGitHubDataTask(project).then(async (result) => {
       logger.info(`GitHub data updated for project: ${project.name}`, result);
     }).catch(error => {
