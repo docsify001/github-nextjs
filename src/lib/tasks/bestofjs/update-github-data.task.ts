@@ -8,6 +8,24 @@ import { translator } from "@/lib/translate/translator";
 import { createRepoWebhookRequest } from "@/lib/webhook/repo-webhook-schema";
 import { sendWebhookToMultipleUrls } from "@/lib/shared/webhook-utils";
 import { upsertHallOfFameFromRepo } from "@/lib/hall-of-fame/hall-of-fame-service";
+import type { CreateProjectType } from "@/drizzle/projects";
+
+/** openmcp webhook 需要 project type，repos 表无此字段，取自关联 projects（与 RepoProcessor 一致按 priority 排序后的首条） */
+function projectTypeForOpenmcpWebhook(repo: {
+  projects?: { type: string }[];
+}): CreateProjectType {
+  const t = repo.projects?.[0]?.type;
+  if (
+    t === "skill" ||
+    t === "application" ||
+    t === "client" ||
+    t === "server" ||
+    t === "persona"
+  ) {
+    return t;
+  }
+  return "application";
+}
 
 export const updateGitHubDataTask = createTask({
   name: "update-github-data",
@@ -246,7 +264,7 @@ export const updateGitHubDataTask = createTask({
                 ...finalRepo,
                 full_name: `${finalRepo.owner}/${finalRepo.name}`,
               };
-              const projectType = (repoPayload as any).type ?? "application";
+              const projectType = projectTypeForOpenmcpWebhook(repo);
               const webhookRequest = createRepoWebhookRequest(
                 projectType,
                 repoPayload,
@@ -307,7 +325,7 @@ export const updateGitHubDataTask = createTask({
           const webhookUrls = process.env.DAILY_WEBHOOK_URL;
           if (webhookUrls) {
             try {
-              const projectType = (repo as any).type ?? "application";
+              const projectType = projectTypeForOpenmcpWebhook(repo);
               const webhookRequest = createRepoWebhookRequest(
                 projectType,
                 repo,
