@@ -12,6 +12,8 @@ export interface SkillWebhookPayload {
     repo_owner: string;
     skill_dir: string;
     name: string;
+    /** 中文标题，可选；缺省时 openmcp 的 title 使用 name */
+    name_zh?: string | null;
     description: string;
     description_zh: string;
     readme: string;
@@ -30,6 +32,7 @@ export function buildSkillWebhookPayload(params: {
   repoName: string;
   skillDir: string;
   name: string;
+  nameZh?: string | null;
   description: string;
   descriptionZh: string;
   readme: string;
@@ -51,6 +54,7 @@ export function buildSkillWebhookPayload(params: {
       repo_owner: params.repoOwner,
       skill_dir: params.skillDir,
       name: params.name,
+      name_zh: params.nameZh ?? null,
       description: params.description,
       description_zh: params.descriptionZh,
       readme: params.readme,
