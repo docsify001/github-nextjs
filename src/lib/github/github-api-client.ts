@@ -3,7 +3,7 @@ import { GraphQLClient } from "graphql-request";
 import scrapeIt from "scrape-it";
 
 import { processReadMeHtml } from "./process-readme-html";
-import { extractRepoInfo, queryRepoInfo } from "./repo-info-query";
+import { extractRepoInfo, queryRepoInfo, queryRepoInfoBasic } from "./repo-info-query";
 import { extractUserInfo, queryUserInfo } from "./user-info-query";
 import { processReadMeMd } from "./process-readme-md";
 
@@ -40,17 +40,42 @@ export function createGitHubClient() {
     return makeRestApiRequest(endPoint).then((response) => response.json());
   }
 
-  const fetchRepoInfoMain = (fullName: string) => {
+  const fetchRepoInfoMain = (fullName: string, query = queryRepoInfo) => {
     const [owner, name] = fullName.split("/");
     debug("Fetch repo info from GitHub GraphQL", owner, name);
     return graphQLClient
-      .request(queryRepoInfo, { owner, name })
+      .request(query, { owner, name })
       .then(extractRepoInfo)
       .catch((error) => {
         const message = error.response && error.response.message;
         if (message) throw new Error(`GraphQL API error "${message}"`);
         throw error;
       });
+  };
+
+  // Backfill counts that the reduced query omits (stargazers/watchers/forks)
+  // using the REST API, which serves public repo metadata to any valid token.
+  const backfillRepoStats = async <T extends object>(
+    repoInfo: T,
+    fullName: string
+  ): Promise<T> => {
+    const rest = await makeRestApiRequestJSON(`repos/${fullName}`);
+    if (!rest || typeof rest !== "object") return repoInfo;
+    const record = repoInfo as Record<string, unknown>;
+    if (Number.isInteger(rest.stargazers_count)) {
+      record.stargazers_count = rest.stargazers_count;
+    }
+    if (Number.isInteger(rest.subscribers_count)) {
+      record.watchers_count = rest.subscribers_count;
+    }
+    if (Number.isInteger(rest.forks_count)) {
+      record.forks = rest.forks_count;
+    }
+    const topicsResponse = await makeRestApiRequestJSON(`repos/${fullName}/topics`);
+    if (Array.isArray(topicsResponse?.names)) {
+      record.topics = topicsResponse.names;
+    }
+    return repoInfo;
   };
 
   const fetchRepoInfoFallback = async (fullName: string) => {
@@ -75,21 +100,31 @@ export function createGitHubClient() {
       const repoInfo = await fetchRepoInfoMain(fullName);
       return repoInfo;
     } catch (error) {
-      if (isErrorNotFound(error as Error)) {
+      if (isErrorType(error, "NOT_FOUND")) {
         debug(`The repo "${fullName}" was not found, try the fallback method!`);
         const { full_name: updatedFullName } =
           await fetchRepoInfoFallback(fullName);
         const repoInfo = await fetchRepoInfoMain(updatedFullName);
         return repoInfo;
-      } else {
-        throw error;
       }
+      if (isErrorType(error, "FORBIDDEN")) {
+        // Some GraphQL connections (stargazers, mentionableUsers, releases,
+        // pullRequests, watchers, repositoryTopics...) are restricted for the
+        // current token. Retry with the reduced query and backfill the counts
+        // from the REST API instead of failing the whole request.
+        debug(
+          `GraphQL access restricted for "${fullName}", retrying with the reduced query`
+        );
+        const repoInfo = await fetchRepoInfoMain(fullName, queryRepoInfoBasic);
+        return backfillRepoStats(repoInfo, fullName);
+      }
+      throw error;
     }
   };
 
-  const isErrorNotFound = (error: unknown) => {
+  const isErrorType = (error: unknown, type: string) => {
     const errorType = (error as any).response?.errors?.[0]?.type;
-    return errorType === "NOT_FOUND";
+    return errorType === type;
   };
 
   // === Public API for the GitHub client ===

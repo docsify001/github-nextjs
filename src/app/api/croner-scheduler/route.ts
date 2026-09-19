@@ -36,26 +36,25 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    // 注意：不再自动启动本地调度器。生产环境（Vercel）任务由 Vercel Cron 触发，
+    // 运行状态以 DB（task_status / task_executions）为准，见 /api/tasks。
     const scheduler = await getScheduler();
-    
-    // 如果调度器还没有启动，则自动启动
-    const status = scheduler.getStatus();
-    if (!status.isRunning) {
-      console.log('Auto-starting scheduler on first GET request...');
-      await scheduler.start();
-    }
     
     const tasks = await scheduler.getTaskDefinitions();
     const runningTasks = scheduler.getRunningTasks();
     const cronStatus = scheduler.getStatus();
 
+    // 运行中任务：本地调度器进程内的运行任务 + DB 中运行中的执行记录
     const tasksWithStatus = await Promise.all(
       tasks.map(async (task) => {
         const status = await scheduler.getTaskStatus(task.id);
+        const isCurrentlyRunning =
+          runningTasks.includes(task.id) ||
+          status?.isRunning === true;
         return {
           ...task,
           status,
-          isCurrentlyRunning: runningTasks.includes(task.id),
+          isCurrentlyRunning,
         };
       })
     );
@@ -66,7 +65,7 @@ export async function GET(request: NextRequest) {
         cronScheduler: cronStatus,
         tasks: tasksWithStatus,
         runningTasks,
-        autoStarted: !status.isRunning, // 标识是否自动启动
+        autoStarted: false, // 不再自动启动
       },
     });
   } catch (error) {

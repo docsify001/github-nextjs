@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/drizzle/database';
 import { createProject, type CreateProjectType } from '@/drizzle/projects/create';
+import { parseGithubRepoUrl } from '@/lib/github/repo-url';
 import { createConsola } from 'consola';
 import { eq, and } from 'drizzle-orm';
 import { schema } from '@/drizzle/database';
@@ -10,6 +11,7 @@ import { runReadmeSyncForRepo } from '@/lib/readme-sync/run-readme-sync-for-repo
 import { createProjectSyncJob } from '@/lib/project-sync/job-helpers';
 import { runStatsAndWebhookPipeline } from '@/lib/project-sync/run-stats-and-webhook';
 import { getFullProjectData as getFullProjectDataShared, fetchProjectData as fetchProjectDataShared, sendWebhookData as sendWebhookDataShared } from '@/lib/project-sync/project-webhook';
+import { upsertHallOfFameFromRepo } from '@/lib/hall-of-fame/hall-of-fame-service';
 
 export const dynamic = "force-dynamic";
 
@@ -126,6 +128,16 @@ export async function POST(request: NextRequest) {
     logger.info(`Full project data retrieved for: ${fullProjectData.name}`);
 
     const repoId = fullProjectData.repo.id;
+
+    // 同步作者到 hall_of_fame（创建项目时）
+    try {
+      await upsertHallOfFameFromRepo(db, fullProjectData.repo, {
+        syncAvatarToOss: true,
+        logger,
+      });
+    } catch (err) {
+      logger.error('Failed to sync hall_of_fame author on project create:', err);
+    }
     try {
       const readmeJob = await createReadmeSyncJob(db, {
         repoId,
@@ -189,16 +201,12 @@ export async function POST(request: NextRequest) {
 
 function validateAndCleanGitHubUrl(url: string): string | null {
   try {
-    // 去掉末尾的 .git
-    const cleanedUrl = url.replace(/\.git$/, '');
-    
-    // 验证是否是GitHub URL
-    const githubUrlPattern = /^https?:\/\/github\.com\/[^\/]+\/[^\/]+$/;
-    if (!githubUrlPattern.test(cleanedUrl)) {
+    // 支持 owner/repo 与完整 GitHub URL，自动去除 .git / 尾部斜杠 / 多余路径
+    const parsed = parseGithubRepoUrl(url);
+    if (!parsed) {
       return null;
     }
-    
-    return cleanedUrl;
+    return parsed.url;
   } catch (error) {
     logger.error('Error validating and cleaning GitHub URL:', error);
     return null;

@@ -1,6 +1,8 @@
 import { relations } from "drizzle-orm";
 import {
+  boolean,
   integer,
+  jsonb,
   pgTable,
   primaryKey,
   text,
@@ -20,6 +22,11 @@ export const hallOfFame = pgTable("hall_of_fame", {
   homepage: text("homepage"),
   twitter: text("twitter"),
   avatar: text("avatar"),
+   avatarUrl: text("avatar_url"),
+   linkedin: text("linkedin"),
+   github: text("github"),
+   verified: boolean("verified").notNull().default(false),
+   metadata: jsonb("metadata"),
   npmUsername: text("npm_username"),
   npmPackageCount: integer("npm_package_count"),
   status: text("status", { enum: ["active", "inactive", "archived"] })

@@ -97,7 +97,11 @@ export function createTaskRunner(tasks: Task<RawFlags | undefined>[]) {
               logger.info("JSON file saved to OSS!", ossUrl);
             } catch (error) {
               logger.error("Failed to save JSON to OSS, falling back to local file system");
-              // 降级到本地文件系统
+              // 降级到本地文件系统（仅本地开发；Vercel 临时文件系统并不可持续）
+              if (process.env.VERCEL === "1") {
+                logger.error("Skipping local fallback on Vercel; file not persisted:", fileName);
+                return;
+              }
               const appRoot = getAppRootPath();
               const filePath = path.join(appRoot, "build", fileName);
               await fs.outputFile(filePath, formattedJson);
@@ -112,7 +116,11 @@ export function createTaskRunner(tasks: Task<RawFlags | undefined>[]) {
               return data;
             } catch (error) {
               logger.error("Failed to read JSON from OSS, falling back to local file system");
-              // 降级到本地文件系统
+              // 降级到本地文件系统（仅本地开发；Vercel 临时文件系统并不可持续）
+              if (process.env.VERCEL === "1") {
+                logger.error("Skipping local fallback on Vercel:", fileName);
+                return undefined;
+              }
               const appRoot = getAppRootPath();
               const filePath = path.join(appRoot, "build", fileName);
               return fs.readJson(filePath);

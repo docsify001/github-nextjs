@@ -110,7 +110,9 @@ export const buildDailyDataTask = createTask({
           if (webhookUrls) {
             try {
               const processingTime = Date.now() - startTime;
+              const projectType = (finalRepo as any).type ?? "application";
               const webhookRequest = createRepoWebhookRequest(
+                projectType,
                 finalRepo,
                 processingStatus,
                 {
@@ -118,7 +120,8 @@ export const buildDailyDataTask = createTask({
                   processed_at: new Date().toISOString(),
                   processing_time_ms: processingTime,
                   success: true,
-                }
+                },
+                undefined
               );
 
               const results = await sendWebhookToMultipleUrls(
@@ -168,7 +171,9 @@ export const buildDailyDataTask = createTask({
           const webhookUrls = process.env.DAILY_WEBHOOK_URL;
           if (webhookUrls) {
             try {
+              const projectType = (repo as any).type ?? "application";
               const webhookRequest = createRepoWebhookRequest(
+                projectType,
                 repo,
                 processingStatus,
                 {
@@ -177,7 +182,8 @@ export const buildDailyDataTask = createTask({
                   processing_time_ms: processingTime,
                   success: false,
                   error_message: error instanceof Error ? error.message : String(error),
-                }
+                },
+                undefined
               );
 
               const results = await sendWebhookToMultipleUrls(

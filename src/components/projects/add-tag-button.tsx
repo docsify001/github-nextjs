@@ -51,16 +51,16 @@ export function AddTagButton() {
     <Form {...form}>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger asChild>
-          <Button variant="default">Add Tag</Button>
+          <Button variant="default">添加标签</Button>
         </DialogTrigger>
         <DialogContent className="sm:max-w-[600px]">
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <DialogHeader>
-              <DialogTitle>Add Tag</DialogTitle>
+              <DialogTitle>添加标签</DialogTitle>
             </DialogHeader>
             <div className="grid grid-cols-[100px_1fr] items-center gap-4">
               <Label htmlFor="name" className="text-right">
-                Name
+                名称
               </Label>
               <FormField
                 control={form.control}

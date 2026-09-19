@@ -1,3 +1,8 @@
 {
-  
-} 
+  "crons": [
+    {
+      "path": "/api/croner-scheduler/cron",
+      "schedule": "0 18 * * *"
+    }
+  ]
+}

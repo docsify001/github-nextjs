@@ -64,6 +64,20 @@
       "when": 1773480248556,
       "tag": "0008_crazy_nighthawk",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1773760814425,
+      "tag": "0009_sticky_johnny_storm",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1773761720838,
+      "tag": "0010_thick_thena",
+      "breakpoints": true
     }
   ]
 }

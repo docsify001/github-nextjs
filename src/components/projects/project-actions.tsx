@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,7 +23,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Loader2, Webhook, RefreshCw, MoreVertical, Trash2 } from "lucide-react";
-import { deleteProjectAction } from "@/app/protected/projects/actions";
+import { deleteProjectAction } from "@/app/[locale]/protected/projects/actions";
 
 interface ProjectActionsProps {
   projectId: string;
@@ -30,6 +31,7 @@ interface ProjectActionsProps {
 }
 
 export function ProjectActions({ projectId, projectName }: ProjectActionsProps) {
+  const t = useTranslations("ProjectsActions");
   const router = useRouter();
   const [webhookUrl, setWebhookUrl] = useState("");
   const [isWebhookDialogOpen, setIsWebhookDialogOpen] = useState(false);
@@ -52,14 +54,14 @@ export function ProjectActions({ projectId, projectName }: ProjectActionsProps) 
       const result = await response.json();
 
       if (result.success) {
-        toast.success("Webhook发送成功");
+        toast.success(t("webhookSent"));
         setIsWebhookDialogOpen(false);
         setWebhookUrl("");
       } else {
-        toast.error(result.error || "Webhook发送失败");
+        toast.error(result.error || t("webhookFailed"));
       }
     } catch (error) {
-      toast.error("网络错误，请稍后重试");
+      toast.error(t("networkError"));
     } finally {
       setIsWebhookLoading(false);
     }
@@ -78,12 +80,12 @@ export function ProjectActions({ projectId, projectName }: ProjectActionsProps) 
       const result = await response.json();
 
       if (result.success) {
-        toast.success("同步任务已启动，正在异步处理");
+        toast.success(t("syncStarted"));
       } else {
-        toast.error(result.error || "同步失败");
+        toast.error(result.error || t("syncFailed"));
       }
     } catch (error) {
-      toast.error("网络错误，请稍后重试");
+      toast.error(t("networkError"));
     } finally {
       setIsSyncLoading(false);
     }
@@ -94,14 +96,14 @@ export function ProjectActions({ projectId, projectName }: ProjectActionsProps) 
     try {
       const result = await deleteProjectAction(projectId);
       if (result.success) {
-        toast.success("项目已删除");
+        toast.success(t("deleted"));
         setIsDeleteDialogOpen(false);
         router.refresh();
       } else {
-        toast.error(result.error ?? "删除失败");
+        toast.error(result.error ?? t("deleteFailed"));
       }
     } catch (error) {
-      toast.error("网络错误，请稍后重试");
+      toast.error(t("networkError"));
     } finally {
       setIsDeleteLoading(false);
     }
@@ -111,7 +113,7 @@ export function ProjectActions({ projectId, projectName }: ProjectActionsProps) 
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="操作菜单">
+          <Button variant="ghost" size="icon" className="h-8 w-8" aria-label={t("actionsMenu")}>
             <MoreVertical className="h-4 w-4" />
           </Button>
         </DropdownMenuTrigger>
@@ -123,7 +125,7 @@ export function ProjectActions({ projectId, projectName }: ProjectActionsProps) 
             }}
           >
             <Webhook className="h-4 w-4 mr-2" />
-            Webhook
+            {t("webhook")}
           </DropdownMenuItem>
           <DropdownMenuItem
             onSelect={(e) => {
@@ -137,7 +139,7 @@ export function ProjectActions({ projectId, projectName }: ProjectActionsProps) 
             ) : (
               <RefreshCw className="h-4 w-4 mr-2" />
             )}
-            同步
+            {t("sync")}
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
@@ -148,7 +150,7 @@ export function ProjectActions({ projectId, projectName }: ProjectActionsProps) 
             className="text-destructive focus:text-destructive"
           >
             <Trash2 className="h-4 w-4 mr-2" />
-            删除
+            {t("delete")}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -157,14 +159,14 @@ export function ProjectActions({ projectId, projectName }: ProjectActionsProps) 
       <Dialog open={isWebhookDialogOpen} onOpenChange={setIsWebhookDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>发送Webhook</DialogTitle>
+            <DialogTitle>{t("sendWebhook")}</DialogTitle>
             <DialogDescription>
-              为项目 &quot;{projectName}&quot; 发送webhook数据到指定URL
+              {t("sendWebhookDesc", { projectName })}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label htmlFor="webhook-url">Webhook URL</Label>
+              <Label htmlFor="webhook-url">{t("webhookUrlLabel")}</Label>
               <Input
                 id="webhook-url"
                 type="url"
@@ -180,11 +182,11 @@ export function ProjectActions({ projectId, projectName }: ProjectActionsProps) 
               onClick={() => setIsWebhookDialogOpen(false)}
               disabled={isWebhookLoading}
             >
-              取消
+              {t("cancel")}
             </Button>
             <Button onClick={handleWebhook} disabled={isWebhookLoading}>
               {isWebhookLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              发送
+              {t("send")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -194,9 +196,9 @@ export function ProjectActions({ projectId, projectName }: ProjectActionsProps) 
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>确认删除项目</DialogTitle>
+            <DialogTitle>{t("confirmDelete")}</DialogTitle>
             <DialogDescription>
-              确定要删除项目 &quot;{projectName}&quot; 吗？此操作将级联删除关联的标签、包等数据，且不可恢复。
+              {t("confirmDeleteDesc", { projectName })}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -205,7 +207,7 @@ export function ProjectActions({ projectId, projectName }: ProjectActionsProps) 
               onClick={() => setIsDeleteDialogOpen(false)}
               disabled={isDeleteLoading}
             >
-              取消
+              {t("cancel")}
             </Button>
             <Button
               variant="destructive"
@@ -213,7 +215,7 @@ export function ProjectActions({ projectId, projectName }: ProjectActionsProps) 
               disabled={isDeleteLoading}
             >
               {isDeleteLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              确定删除
+              {t("confirmDeleteButton")}
             </Button>
           </DialogFooter>
         </DialogContent>

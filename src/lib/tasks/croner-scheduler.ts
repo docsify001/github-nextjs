@@ -309,23 +309,36 @@ export class CronerScheduler {
     return executionId;
   }
 
-  // 停止任务
+  // 停止任务（DB 驱动：兼容 Vercel Cron / 跨进程执行，未在本地内存中运行也能停止）
   async stopTask(taskDefinitionId: string) {
-    const isRunning = this.runningTasks.has(taskDefinitionId);
-    if (!isRunning) {
-      throw new Error('Task is not running');
+    const inMemoryRunning = this.runningTasks.has(taskDefinitionId);
+
+    // 从 DB 判断是否真的在运行（task_status.isRunning 或存在 running/pending 执行记录）
+    const status = await this.getTaskStatus(taskDefinitionId);
+    const [latestExecution] = await this.getTaskExecutions(taskDefinitionId, 1);
+    const liveExecution =
+      latestExecution &&
+      (latestExecution.status === 'running' || latestExecution.status === 'pending');
+    const dbRunning = status?.isRunning === true || liveExecution;
+
+    if (!inMemoryRunning && !dbRunning) {
+      // 未在运行：幂等返回成功，同时清理可能残留的运行标记
+      await this.upsertTaskStatus(taskDefinitionId, { isRunning: false });
+      return;
     }
 
-    // 更新执行记录状态
-    const status = await this.getTaskStatus(taskDefinitionId);
-    if (status?.lastExecutionId) {
+    // 标记执行记录为取消（优先取消确实在运行的那条）
+    const targetExecutionId =
+      (liveExecution && latestExecution?.id) || status?.lastExecutionId || undefined;
+
+    if (targetExecutionId) {
       await this.db
         .update(schema.taskExecutions)
         .set({
           status: 'cancelled',
           completedAt: new Date(),
         })
-        .where(eq(schema.taskExecutions.id, status.lastExecutionId));
+        .where(eq(schema.taskExecutions.id, targetExecutionId));
     }
 
     // 更新任务状态

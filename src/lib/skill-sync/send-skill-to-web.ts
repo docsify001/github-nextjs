@@ -3,30 +3,28 @@
  * 不传 repo 统计，由 web 端从 repos 表读取并写入 app（设计 5.2）。
  */
 
-export const SKILL_EVENT_TYPE = "skill_updated" as const;
-
-export interface SkillWebhookData {
-  repo_full_name: string;
-  repo_name: string;
-  repo_owner: string;
-  skill_dir: string;
-  name: string;
-  description: string | null;
-  description_zh: string | null;
-  readme: string | null;
-  readme_zh: string | null;
-  version?: string | null;
-  category_id?: string | null;
-  features?: string[] | null;
-  scenario?: string | null;
-  license?: string | null;
-  tools?: string[] | null;
-}
-
 export interface SkillWebhookPayload {
   event_type: "skill_updated";
   timestamp: string;
-  data: SkillWebhookData;
+  data: {
+    repo_full_name: string;
+    repo_name: string;
+    repo_owner: string;
+    skill_dir: string;
+    name: string;
+    /** 中文标题，可选；缺省时 openmcp 的 title 使用 name */
+    name_zh?: string | null;
+    description: string;
+    description_zh: string;
+    readme: string;
+    readme_zh: string;
+    version?: string | null;
+    category_id?: string | null;
+    features?: string[] | null;
+    scenario?: string | null;
+    license?: string | null;
+    tools?: string[] | null;
+  };
 }
 
 export function buildSkillWebhookPayload(params: {
@@ -34,10 +32,11 @@ export function buildSkillWebhookPayload(params: {
   repoName: string;
   skillDir: string;
   name: string;
-  description: string | null;
-  descriptionZh: string | null;
-  readme: string | null;
-  readmeZh: string | null;
+  nameZh?: string | null;
+  description: string;
+  descriptionZh: string;
+  readme: string;
+  readmeZh: string;
   version?: string | null;
   categoryId?: string | null;
   features?: string[] | null;
@@ -55,6 +54,7 @@ export function buildSkillWebhookPayload(params: {
       repo_owner: params.repoOwner,
       skill_dir: params.skillDir,
       name: params.name,
+      name_zh: params.nameZh ?? null,
       description: params.description,
       description_zh: params.descriptionZh,
       readme: params.readme,

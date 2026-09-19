@@ -7,6 +7,25 @@ import { aliyunOSSClient } from "@/lib/oss/aliyun-oss";
 import { translator } from "@/lib/translate/translator";
 import { createRepoWebhookRequest } from "@/lib/webhook/repo-webhook-schema";
 import { sendWebhookToMultipleUrls } from "@/lib/shared/webhook-utils";
+import { upsertHallOfFameFromRepo } from "@/lib/hall-of-fame/hall-of-fame-service";
+import type { CreateProjectType } from "@/drizzle/projects";
+
+/** openmcp webhook 需要 project type，repos 表无此字段，取自关联 projects（与 RepoProcessor 一致按 priority 排序后的首条） */
+function projectTypeForOpenmcpWebhook(repo: {
+  projects?: { type: string }[];
+}): CreateProjectType {
+  const t = repo.projects?.[0]?.type;
+  if (
+    t === "skill" ||
+    t === "application" ||
+    t === "client" ||
+    t === "server" ||
+    t === "persona"
+  ) {
+    return t;
+  }
+  return "application";
+}
 
 export const updateGitHubDataTask = createTask({
   name: "update-github-data",
@@ -191,25 +210,72 @@ export const updateGitHubDataTask = createTask({
 
           const finalRepo = updatedRepo[0] || { ...repo, ...data };
 
+          logger.debug("STEP 11: 同步作者到 hall_of_fame");
+          await upsertHallOfFameFromRepo(db, finalRepo, {
+            syncAvatarToOss: true,
+            logger,
+          });
+
+          // 查询 hall_of_fame 得到 avatar(OSS)、avatarUrl(GitHub)，随 webhook 发给 openmcp
+          const [hallOfFameRow] = await db
+            .select({
+              username: schema.hallOfFame.username,
+              name: schema.hallOfFame.name,
+              avatar: schema.hallOfFame.avatar,
+              avatarUrl: schema.hallOfFame.avatarUrl,
+              bio: schema.hallOfFame.bio,
+              homepage: schema.hallOfFame.homepage,
+              twitter: schema.hallOfFame.twitter,
+              linkedin: schema.hallOfFame.linkedin,
+              github: schema.hallOfFame.github,
+              verified: schema.hallOfFame.verified,
+              status: schema.hallOfFame.status,
+              metadata: schema.hallOfFame.metadata,
+            })
+            .from(schema.hallOfFame)
+            .where(eq(schema.hallOfFame.username, finalRepo.owner))
+            .limit(1);
+          const webhookAuthor =
+            hallOfFameRow != null
+              ? {
+                  name: hallOfFameRow.name ?? undefined,
+                  username: hallOfFameRow.username ?? undefined,
+                  avatar: hallOfFameRow.avatar ?? undefined,
+                  avatar_url: hallOfFameRow.avatarUrl ?? undefined,
+                  bio: hallOfFameRow.bio ?? undefined,
+                  website: hallOfFameRow.homepage ?? undefined,
+                  twitter: hallOfFameRow.twitter ?? undefined,
+                  linkedin: hallOfFameRow.linkedin ?? undefined,
+                  github: hallOfFameRow.github ?? undefined,
+                  verified: hallOfFameRow.verified ?? undefined,
+                  status: hallOfFameRow.status ?? undefined,
+                  metadata: hallOfFameRow.metadata ?? undefined,
+                }
+              : undefined;
+
           // 发送webhook回调
           const webhookUrls = process.env.DAILY_WEBHOOK_URL;
-          logger.warn("STEP 11: 发送webhook回调: ",  webhookUrls, finalRepo);
+          logger.warn("STEP 12: 发送webhook回调: ", webhookUrls, finalRepo);
 
           if (webhookUrls) {
             try {
               const processingTime = Date.now() - startTime;
+              const repoPayload = {
+                ...finalRepo,
+                full_name: `${finalRepo.owner}/${finalRepo.name}`,
+              };
+              const projectType = projectTypeForOpenmcpWebhook(repo);
               const webhookRequest = createRepoWebhookRequest(
-                {
-                  ...finalRepo,
-                  full_name: `${finalRepo.owner}/${finalRepo.name}`,
-                },
+                projectType,
+                repoPayload,
                 processingStatus,
                 {
                   task_name: "update-github-data",
                   processed_at: new Date().toISOString(),
                   processing_time_ms: processingTime,
                   success: true,
-                }
+                },
+                webhookAuthor
               );
 
               const results = await sendWebhookToMultipleUrls(
@@ -259,7 +325,9 @@ export const updateGitHubDataTask = createTask({
           const webhookUrls = process.env.DAILY_WEBHOOK_URL;
           if (webhookUrls) {
             try {
+              const projectType = projectTypeForOpenmcpWebhook(repo);
               const webhookRequest = createRepoWebhookRequest(
+                projectType,
                 repo,
                 processingStatus,
                 {
@@ -268,7 +336,8 @@ export const updateGitHubDataTask = createTask({
                   processing_time_ms: processingTime,
                   success: false,
                   error_message: error instanceof Error ? error.message : String(error),
-                }
+                },
+                undefined
               );
 
               const results = await sendWebhookToMultipleUrls(

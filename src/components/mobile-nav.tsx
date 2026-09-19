@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,19 +13,16 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 
-const navLinks = [
-  { href: "/", label: "首页" },
-  { href: "/protected", label: "管理后台" },
-  { href: "/protected/skills", label: "Skills 同步" },
-  { href: "/protected/projects", label: "项目管理" },
-  { href: "/protected/tasks/monitor", label: "任务管理" },
-  { href: "/protected/readme-sync-failures", label: "README失败" },
-  { href: "/protected/project-sync-failures", label: "项目同步失败" },
-  { href: "/protected/auth-status", label: "认证状态" },
-] as const;
-
 export function MobileNav({ className }: { className?: string }) {
+  const t = useTranslations("Navigation");
   const [open, setOpen] = useState(false);
+
+  const navLinks = [
+    { href: "/protected", label: t("dashboard") },
+    { href: "/protected/projects", label: t("projects") },
+    { href: "/protected/tasks/monitor", label: t("tasks") },
+    { href: "/protected/api", label: t("apiDocs") },
+  ];
 
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
@@ -33,12 +31,12 @@ export function MobileNav({ className }: { className?: string }) {
           variant="ghost"
           size="icon"
           className={cn("h-9 w-9", className)}
-          aria-label="打开菜单"
+          aria-label={t("openMenu")}
         >
           <Menu className="h-5 w-5" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-48">
+      <DropdownMenuContent align="start" className="w-48">
         {navLinks.map(({ href, label }) => (
           <DropdownMenuItem key={href} asChild>
             <Link href={href} onClick={() => setOpen(false)} className="block">

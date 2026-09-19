@@ -7,6 +7,7 @@ import { z } from "zod";
 
 import { db } from "../database";
 import * as schema from "../schema";
+import { parseGithubRepoUrl } from "@/lib/github/repo-url";
 import { generateProjectDefaultSlug } from "./project-helpers";
 
 export type CreateProjectType = "skill" | "application" | "client" | "server" | "persona";
@@ -14,11 +15,12 @@ export type CreateProjectType = "skill" | "application" | "client" | "server" | 
 const PROJECT_ALREADY_EXISTS_MSG = "项目已经存在";
 
 export async function createProject(gitHubURL: string, type: CreateProjectType) {
-  const fullName = gitHubURL.split("/").slice(-2).join("/");
-  const [owner, name] = fullName.split("/");
-  if (!owner || !name) {
-    throw new Error("无效的 GitHub 仓库 URL");
+  // 支持 owner/repo 与完整 GitHub URL（自动去除 .git / 尾部斜杠等）
+  const parsed = parseGithubRepoUrl(gitHubURL);
+  if (!parsed) {
+    throw new Error("无效的 GitHub 仓库地址，请使用 owner/repo 或完整的 GitHub 链接");
   }
+  const { owner, name, fullName } = parsed;
 
   const repoData = await fetchGitHubRepoData(fullName);
 
@@ -35,6 +37,15 @@ export async function createProject(gitHubURL: string, type: CreateProjectType) 
     if (existingProject) {
       throw new Error(PROJECT_ALREADY_EXISTS_MSG);
     }
+  }
+
+  // 同一 owner 下只能有一个相同 name 的项目，提前检查避免唯一索引报错
+  const existingProjectByOwnerAndName = await db.query.projects.findFirst({
+    where: and(eq(schema.projects.owner, owner), eq(schema.projects.name, repoData.name)),
+    columns: { id: true },
+  });
+  if (existingProjectByOwnerAndName) {
+    throw new Error(PROJECT_ALREADY_EXISTS_MSG);
   }
 
   const slug = generateProjectDefaultSlug(repoData.name);
@@ -69,6 +80,7 @@ export async function createProject(gitHubURL: string, type: CreateProjectType) 
       .insert(schema.projects)
       .values({
         id: nanoid(),
+        owner: repo.owner,
         repoId,
         name: repoData.name,
         slug,
@@ -122,6 +134,7 @@ export async function addProjectToRepo({
       id: nanoid(),
       createdAt: new Date(),
       repoId,
+      owner: "",
       name,
       description,
       type,

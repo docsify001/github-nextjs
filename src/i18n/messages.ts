@@ -1,0 +1,34 @@
+import deepmerge from "deepmerge";
+import type { Locale, Messages } from "next-intl";
+import { routing } from "./routing";
+
+// Assume the default messages are in the zh.json file
+// we need to export the default messages so that they can be used in
+// app-specific places that run outside of the React tree
+export { default as defaultMessages } from "../../messages/zh.json";
+
+const importLocale = async (locale: Locale): Promise<Messages> => {
+  return (await import(`../../messages/${locale}.json`)).default as Messages;
+};
+
+// Instead of using top-level await, create a function to get default messages
+export const getDefaultMessages = async (): Promise<Messages> => {
+  return await importLocale(routing.defaultLocale);
+};
+
+/**
+ * If you have incomplete messages for a given locale and would like to use
+ * messages from another locale as a fallback, merge the two accordingly.
+ *
+ * https://next-intl.dev/docs/usage/configuration#messages
+ */
+export const getMessagesForLocale = async (
+  locale: Locale
+): Promise<Messages> => {
+  const localeMessages = await importLocale(locale);
+  if (locale === routing.defaultLocale) {
+    return localeMessages;
+  }
+  const defaultMessages = await getDefaultMessages();
+  return deepmerge(defaultMessages, localeMessages);
+};
