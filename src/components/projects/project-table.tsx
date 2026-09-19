@@ -1,5 +1,7 @@
+"use client";
+
 import Link from "next/link";
-import { getTranslations } from "next-intl/server";
+import { useTranslations } from "next-intl";
 
 import type { findProjects } from "@/drizzle/projects";
 import { ProjectLogo } from "@/components/projects/project-logo";
@@ -19,8 +21,8 @@ type Props = {
   projects: Awaited<ReturnType<typeof findProjects>>;
 };
 
-export async function ProjectTable({ projects }: Props) {
-  const t = await getTranslations("Projects");
+export function ProjectTable({ projects }: Props) {
+  const t = useTranslations("Projects");
 
   return (
     <Table className="min-w-[640px]">
