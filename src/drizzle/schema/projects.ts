@@ -13,16 +13,13 @@ import { PROJECT_STATUSES, PROJECT_TYPES } from "../constants";
 import { packages } from "./packages";
 import { repos } from "./repos";
 import { tags } from "./tags";
-import { hallOfFame } from "./hall-of-fame";
 
 export const projects = pgTable(
   "projects",
   {
     id: text("id").primaryKey(),
     name: text("name").notNull(),
-    owner: text("owner")
-      .notNull()
-      .references(() => hallOfFame.username, { onDelete: "cascade" }),
+    owner: text("owner").notNull(),
     slug: text("slug").notNull().unique(),
     description: text("description").notNull(),
     overrideDescription: boolean("override_description"),

@@ -2,15 +2,16 @@ import type { Config } from "drizzle-kit";
 import dotenv from "dotenv";
 
 dotenv.config();
-
-console.log("POSTGRES_URL:", process.env.POSTGRES_URL);
+dotenv.config({ path: ".env.local", override: true });
 
 export default {
   schema: "./src/drizzle/schema/index.ts",
   out: "./src/drizzle/migrations",
   dialect: "postgresql",
   dbCredentials: {
-    // url: process.env.DATABASE_URL ?? process.env.POSTGRES_URL ?? "postgres://postgres.ltnmpqasnxssguojbsyj:0tF1RmdCFseSJJib@aws-0-us-east-1.pooler.supabase.com:6543/postgres",
-    url: process.env.DATABASE_URL ?? "postgres://openmcp:openmcp@localhost:5432/openmcp",
+    url:
+      process.env.DATABASE_URL ??
+      process.env.POSTGRES_URL ??
+      "postgres://openmcp:openmcp@localhost:5432/openmcp",
   },
 } satisfies Config;
