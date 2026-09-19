@@ -8,6 +8,7 @@ import { z } from "zod";
 import { db } from "../database";
 import * as schema from "../schema";
 import { parseGithubRepoUrl } from "@/lib/github/repo-url";
+import { upsertHallOfFameFromRepo } from "@/lib/hall-of-fame/hall-of-fame-service";
 import { generateProjectDefaultSlug } from "./project-helpers";
 
 export type CreateProjectType = "skill" | "application" | "client" | "server" | "persona";
@@ -61,6 +62,7 @@ export async function createProject(gitHubURL: string, type: CreateProjectType) 
     updated_at: now,
   };
 
+  let createdRepo: (typeof schema.repos.$inferSelect) | undefined;
   const createdProjects = await db.transaction(async (tx) => {
     const [repo] = await tx
       .insert(schema.repos)
@@ -72,6 +74,7 @@ export async function createProject(gitHubURL: string, type: CreateProjectType) 
       .returning();
 
     if (!repo) throw new Error("创建或更新仓库失败");
+    createdRepo = repo;
     const repoId = repo.id;
 
     const skillMdPath = type === "skill" ? "skills" : undefined;
@@ -94,6 +97,14 @@ export async function createProject(gitHubURL: string, type: CreateProjectType) 
   });
 
   console.log("Project created", createdProjects);
+
+  if (createdRepo) {
+    try {
+      await upsertHallOfFameFromRepo(db, createdRepo, { syncAvatarToOss: true });
+    } catch (error) {
+      console.error("同步 owner 到 hall_of_fame 失败，不影响项目创建", error);
+    }
+  }
 
   return createdProjects[0];
 }

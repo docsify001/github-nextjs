@@ -6,6 +6,7 @@
     "start": "next start",
     "lint": "eslint .",
     "croner-scheduler": "tsx src/scripts/start-croner-scheduler.ts",
+    "backfill:hall-of-fame": "tsx src/scripts/backfill-hall-of-fame.ts",
     "db:migrate": "drizzle-kit migrate",
     "db:generate": "drizzle-kit generate"
   },
