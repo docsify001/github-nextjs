@@ -252,6 +252,8 @@
     "schedulerRunning": "Running",
     "schedulerStopped": "Stopped",
     "vercelCronNote": "On production, tasks run via Vercel Cron (once daily at 02:00 Beijing time). Running status shown here is read from the database and reflects real executions.",
+    "howToHandleTitle": "How to handle failed tasks",
+    "howToHandleDesc": "For task-level failures, click the retry button on the entry above. For repo-level failures (README translation, project info sync, and other time-consuming jobs), open the corresponding failure page and retry them one by one.",
     "recentExecutionsTitle": "Recent executions & failed tasks",
     "recentExecutionsDesc": "Shows the latest 30 executions. Failed tasks can be retried here, or handled in the README / project sync failure pages.",
     "failedExecutions": "{count} failed executions",

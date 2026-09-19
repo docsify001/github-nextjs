@@ -21,7 +21,9 @@ import {
   Calendar,
   Zap,
   Info,
-  RotateCcw
+  RotateCcw,
+  FileText,
+  GitPullRequest
 } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { useTranslations } from 'next-intl';
@@ -85,6 +87,8 @@ export default function TaskMonitorPage() {
   const [runningTasks, setRunningTasks] = useState<Set<string>>(new Set());
   const [schedulerRunning, setSchedulerRunning] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(true);
+  const [readmeFailCount, setReadmeFailCount] = useState(0);
+  const [projectFailCount, setProjectFailCount] = useState(0);
 
   useEffect(() => {
     fetchData();
@@ -127,6 +131,20 @@ export default function TaskMonitorPage() {
           setSchedulerStatus(schedulerData.data.cronScheduler);
           setSchedulerRunning(schedulerData.data.cronScheduler.isRunning);
         }
+      }
+
+      // 获取同步失败任务计数（README / 项目同步均为耗时任务，失败需要人工处理）
+      const [readmeRes, projectRes] = await Promise.all([
+        fetch('/api/readme-sync-jobs?status=failed&page=1&pageSize=1'),
+        fetch('/api/project-sync-jobs?status=failed&page=1&pageSize=1'),
+      ]);
+      if (readmeRes.ok) {
+        const readmeData = await readmeRes.json();
+        setReadmeFailCount(readmeData.total ?? 0);
+      }
+      if (projectRes.ok) {
+        const projectData = await projectRes.json();
+        setProjectFailCount(projectData.total ?? 0);
       }
       
       setLoading(false);
@@ -533,7 +551,7 @@ export default function TaskMonitorPage() {
       </Card>
 
       {/* 最近执行记录 / 失败任务 */}
-      <Card className="mb-6">
+      <Card className="mb-6" id="recent-executions">
         <CardHeader className="pb-3 sm:pb-6">
           <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
             <AlertTriangle className="h-5 w-5 shrink-0" />
@@ -606,22 +624,44 @@ export default function TaskMonitorPage() {
               })}
             </div>
           )}
-          {failedExecutionsCount > 0 && (
-            <div className="mt-4 flex flex-col gap-2 border-t pt-4 sm:flex-row sm:items-center sm:justify-between">
-              <p className="flex items-center gap-1 text-sm font-medium text-red-600 dark:text-red-400">
-                <AlertTriangle className="h-4 w-4 shrink-0" />
-                {t("failedExecutions", { count: failedExecutionsCount })}
+          {/* 失败任务处理指引 / 快捷入口 */}
+          <div className="mt-4 flex flex-col gap-2 rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-950/30 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-red-700 dark:text-red-400">
+                {t("howToHandleTitle")}
+                {failedExecutionsCount > 0 && (
+                  <span className="ml-2 text-xs text-red-600 dark:text-red-400">
+                    （{t("failedExecutions", { count: failedExecutionsCount })}）
+                  </span>
+                )}
               </p>
-              <div className="flex flex-wrap gap-2">
-                <Button variant="outline" size="sm" onClick={() => router.push('/protected/readme-sync-failures')} className="shrink-0">
-                  {t("viewReadmeFailures")}
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => router.push('/protected/project-sync-failures')} className="shrink-0">
-                  {t("viewProjectFailures")}
-                </Button>
-              </div>
+              <p className="mt-1 text-xs text-red-600/80 dark:text-red-400/80">
+                {t("howToHandleDesc")}
+              </p>
             </div>
-          )}
+            <div className="flex shrink-0 flex-wrap gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => router.push('/protected/readme-sync-failures')}
+                className="shrink-0 border-red-300 bg-white/70 hover:bg-white dark:border-red-800 dark:bg-red-950/40 dark:hover:bg-red-950/60"
+              >
+                <FileText className="h-4 w-4 sm:mr-2" />
+                {t("viewReadmeFailures")}
+                {readmeFailCount > 0 && <Badge variant="destructive" className="ml-2">{readmeFailCount}</Badge>}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => router.push('/protected/project-sync-failures')}
+                className="shrink-0 border-red-300 bg-white/70 hover:bg-white dark:border-red-800 dark:bg-red-950/40 dark:hover:bg-red-950/60"
+              >
+                <GitPullRequest className="h-4 w-4 sm:mr-2" />
+                {t("viewProjectFailures")}
+                {projectFailCount > 0 && <Badge variant="destructive" className="ml-2">{projectFailCount}</Badge>}
+              </Button>
+            </div>
+          </div>
         </CardContent>
       </Card>
 

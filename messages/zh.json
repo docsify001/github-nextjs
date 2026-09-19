@@ -264,6 +264,8 @@
     "schedulerRunning": "运行中",
     "schedulerStopped": "已停止",
     "vercelCronNote": "生产环境任务由 Vercel Cron 触发（每日一次，北京时间 02:00）。此处运行状态来自数据库，可如实反映执行情况。",
+    "howToHandleTitle": "任务执行失败处理",
+    "howToHandleDesc": "任务级失败可点击上方记录条的重试按钮重新执行；仓库级失败（README 翻译 / 项目信息同步等耗时任务）请前往对应失败页面查看并逐条重试。",
     "recentExecutionsTitle": "最近执行记录 / 失败任务",
     "recentExecutionsDesc": "展示最近 30 条执行记录，失败任务可在此重试，或前往 README / 项目同步失败页面处理。",
     "failedExecutions": "共 {count} 条失败记录",
