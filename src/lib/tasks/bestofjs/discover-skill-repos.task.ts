@@ -248,6 +248,7 @@ export const discoverSkillReposTask = createTask({
             .values({
               id: nanoid(),
               repoId: created.id,
+              owner: repo.owner.login,
               name: repo.name,
               slug: projectSlug,
               description: repo.description || "(No description)",
