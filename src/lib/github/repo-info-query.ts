@@ -80,6 +80,56 @@ export const queryRepoInfo = `query getRepoInfo($owner: String!, $name: String!)
   }
 }`;
 
+// Reduced query used when the personal access token does not have access to
+// some GraphQL connections (e.g. stargazers/mentionableUsers raise FORBIDDEN
+// with fine-grained tokens). Keeps only the scalar/commonly-available fields.
+export const queryRepoInfoBasic = `query getRepoInfo($owner: String!, $name: String!) {
+  repository(owner: $owner, name: $name) {
+    name
+    description
+    homepageUrl
+    createdAt
+    pushedAt
+    updatedAt
+    isArchived
+    diskUsage
+    forkCount
+    owner {
+      login
+      avatarUrl
+    }
+    licenseInfo {
+      spdxId
+    }
+    languages(first: 10, orderBy: {field: SIZE, direction: DESC}) {
+      nodes {
+        name
+      }
+    }
+    openGraphImageUrl
+    usesCustomOpenGraphImage
+    ... on Repository {
+      defaultBranchRef {
+        name
+        target {
+          ... on Commit {
+            history(first: 1) {
+              totalCount
+              edges {
+                node {
+                  ... on Commit {
+                    committedDate
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}`;
+
 // 安全获取嵌套对象属性的辅助函数
 function safeGet<T>(obj: any, path: string[], defaultValue: T): T {
   let current = obj;
