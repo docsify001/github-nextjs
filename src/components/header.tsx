@@ -4,8 +4,10 @@ import Link from "next/link";
 
 const navLinks = [
   { href: "/", label: "首页" },
-  { href: "/protected/tasks/monitor", label: "任务管理" },
+  { href: "/protected", label: "管理后台" },
+  { href: "/protected/skills", label: "Skills 同步" },
   { href: "/protected/projects", label: "项目管理" },
+  { href: "/protected/tasks/monitor", label: "任务管理" },
   { href: "/protected/readme-sync-failures", label: "README失败" },
   { href: "/protected/project-sync-failures", label: "项目同步失败" },
   { href: "/protected/auth-status", label: "认证状态" },

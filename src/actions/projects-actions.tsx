@@ -21,6 +21,11 @@ export async function createProjectAction(gitHubURL: string, type: CreateProject
   } catch {
     // 不影响创建结果，仅记录失败
   }
+  console.log("[project-create] 创建 project 完成", {
+    projectId: project.id,
+    slug: project.slug,
+  });
+
   if (type === "skill") {
     console.log("[skill-sync] 创建 skill 项目，触发异步 skill 同步", {
       projectId: project.id,

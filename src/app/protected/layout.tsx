@@ -1,6 +1,7 @@
-
 import { ThemeSwitcher } from "@/components/theme-switcher";
-import Header from "@/components/header";
+import { AuthButton } from "@/components/auth-button";
+import { MobileNav } from "@/components/mobile-nav";
+import { AdminSidebar } from "@/components/admin/sidebar";
 import { AuthProvider } from "@/contexts/auth-context";
 import { AuthGuard } from "@/components/auth-guard";
 import { ErrorBoundary } from "@/components/error-boundary";
@@ -16,16 +17,37 @@ export default function ProtectedLayout({
       <NotificationProvider>
         <AuthProvider>
           <AuthGuard>
-            <main className="min-h-screen flex flex-col items-center container mx-auto max-w-7xl">
-              <div className="flex-1 w-full flex flex-col gap-20 items-center">
-                <Header />
-                <div className="flex-1 flex flex-col gap-20 w-full p-5">
-                  {children}
-                </div>
+            <div className="flex min-h-screen">
+              {/* 桌面端侧边栏 */}
+              <AdminSidebar />
 
-                <footer className="w-full flex items-center justify-center border-t mx-auto text-center text-xs gap-8 py-16">
+              {/* 主内容区 */}
+              <div className="flex min-w-0 flex-1 flex-col">
+                {/* 移动端顶部导航；桌面端仅显示右侧工具栏 */}
+                <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+                  <div className="flex h-14 items-center justify-between gap-4 px-4 sm:px-6">
+                    <div className="flex min-w-0 flex-1 items-center gap-2 lg:hidden">
+                      <MobileNav />
+                      <span className="text-sm font-semibold">管理后台</span>
+                    </div>
+                    <div className="flex flex-shrink-0 items-center justify-end gap-2 lg:hidden">
+                      <AuthButton />
+                    </div>
+                    <div className="hidden lg:flex flex-shrink-0 items-center justify-end gap-3">
+                      <p className="text-sm font-semibold">管理后台</p>
+                      <ThemeSwitcher />
+                      <AuthButton />
+                    </div>
+                  </div>
+                </header>
+
+                <main className="flex-1 p-4 sm:p-6">
+                  <div className="mx-auto w-full max-w-7xl">{children}</div>
+                </main>
+
+                <footer className="flex w-full items-center justify-center border-t gap-8 py-6 text-center text-xs">
                   <p>
-                    Powered by{" "}
+                    Powered by Best of JS &amp;{" "}
                     <a
                       href="https://supabase.com/?utm_source=create-next-app&utm_medium=template&utm_term=nextjs"
                       target="_blank"
@@ -35,10 +57,12 @@ export default function ProtectedLayout({
                       Supabase
                     </a>
                   </p>
-                  <ThemeSwitcher />
+                  <span className="lg:hidden">
+                    <ThemeSwitcher />
+                  </span>
                 </footer>
               </div>
-            </main>
+            </div>
           </AuthGuard>
         </AuthProvider>
       </NotificationProvider>

@@ -3,26 +3,30 @@
  * 不传 repo 统计，由 web 端从 repos 表读取并写入 app（设计 5.2）。
  */
 
+export const SKILL_EVENT_TYPE = "skill_updated" as const;
+
+export interface SkillWebhookData {
+  repo_full_name: string;
+  repo_name: string;
+  repo_owner: string;
+  skill_dir: string;
+  name: string;
+  description: string | null;
+  description_zh: string | null;
+  readme: string | null;
+  readme_zh: string | null;
+  version?: string | null;
+  category_id?: string | null;
+  features?: string[] | null;
+  scenario?: string | null;
+  license?: string | null;
+  tools?: string[] | null;
+}
+
 export interface SkillWebhookPayload {
   event_type: "skill_updated";
   timestamp: string;
-  data: {
-    repo_full_name: string;
-    repo_name: string;
-    repo_owner: string;
-    skill_dir: string;
-    name: string;
-    description: string;
-    description_zh: string;
-    readme: string;
-    readme_zh: string;
-    version?: string | null;
-    category_id?: string | null;
-    features?: string[] | null;
-    scenario?: string | null;
-    license?: string | null;
-    tools?: string[] | null;
-  };
+  data: SkillWebhookData;
 }
 
 export function buildSkillWebhookPayload(params: {
@@ -30,10 +34,10 @@ export function buildSkillWebhookPayload(params: {
   repoName: string;
   skillDir: string;
   name: string;
-  description: string;
-  descriptionZh: string;
-  readme: string;
-  readmeZh: string;
+  description: string | null;
+  descriptionZh: string | null;
+  readme: string | null;
+  readmeZh: string | null;
   version?: string | null;
   categoryId?: string | null;
   features?: string[] | null;

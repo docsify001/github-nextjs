@@ -14,6 +14,7 @@ import { triggerWeeklyFinishedTask } from './bestofjs/trigger-weekly-finished.ta
 import { buildDailyDataTask } from './bestofjs/build-daily-data.task';
 import { notifyDailyTask } from './bestofjs/notify-daily.task';
 import { syncSkillReposTask } from './bestofjs/sync-skill-repos.task';
+import { discoverSkillReposTask } from './bestofjs/discover-skill-repos.task';
 
 // 创建logger实例
 const logger = createConsola({
@@ -97,6 +98,16 @@ export class CronerScheduler {
         name: 'process-repo-assets',
         description: '处理仓库资源：下载图标、翻译内容、上传Open Graph图片',
         cronExpression: '0 4 * * *', // 每天凌晨4点
+        isEnabled: true,
+        isDaily: true,
+        isMonthly: false,
+        isWeekly: false,
+        taskType: 'daily',
+      },
+      {
+        name: 'discover-skill-repos',
+        description: 'Skill 仓库发现：GitHub 搜索新增 skill/MCP/agent 仓库，创建 type=skill 项目，供 sync-skill-repos 同步',
+        cronExpression: '0 1 * * *', // 每天凌晨1点
         isEnabled: true,
         isDaily: true,
         isMonthly: false,
@@ -471,6 +482,9 @@ export class CronerScheduler {
         buildDailyDataTask, // 构建每日数据，包括GitHub数据、贡献者数量、快照记录、数据库记录、webhook回调，每条记录发送一次。
         notifyDailyTask, // 发送每日通知
       );
+    } else if (taskDef.name === "discover-skill-repos") {
+      logger.info(`Running discover-skill-repos task`);
+      tasks.push(discoverSkillReposTask);
     } else if (taskDef.name === "sync-skill-repos") {
       logger.info(`Running sync-skill-repos task`);
       tasks.push(syncSkillReposTask);
