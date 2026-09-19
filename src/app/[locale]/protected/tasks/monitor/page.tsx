@@ -19,7 +19,9 @@ import {
   Settings,
   Activity,
   Calendar,
-  Zap
+  Zap,
+  Info,
+  RotateCcw
 } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { useTranslations } from 'next-intl';
@@ -50,6 +52,7 @@ interface TaskDefinition {
 interface TaskExecution {
   id: string;
   taskDefinitionId: string;
+  taskName?: string;
   status: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
   startedAt?: string;
   completedAt?: string;
@@ -75,6 +78,7 @@ export default function TaskMonitorPage() {
   const { addNotification } = useNotification();
   
   const [tasks, setTasks] = useState<TaskDefinition[]>([]);
+  const [recentExecutions, setRecentExecutions] = useState<TaskExecution[]>([]);
   const [schedulerStatus, setSchedulerStatus] = useState<SchedulerStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -96,23 +100,32 @@ export default function TaskMonitorPage() {
     try {
       setError(null);
       
-      // 获取调度器状态
+      // 获取任务列表与最近执行记录（DB 驱动，反映 Vercel Cron 与本地调度器的真实状态）
+      const tasksResponse = await fetch('/api/tasks');
+      if (tasksResponse.ok) {
+        const tasksData = await tasksResponse.json();
+        if (tasksData.success) {
+          setTasks(tasksData.data.tasks);
+          setRecentExecutions(tasksData.data.recentExecutions || []);
+
+          // 更新运行中的任务
+          const running = new Set<string>();
+          tasksData.data.tasks.forEach((task: TaskDefinition) => {
+            if (task.isCurrentlyRunning) {
+              running.add(task.id);
+            }
+          });
+          setRunningTasks(running);
+        }
+      }
+      
+      // 获取本地调度器状态（生产环境为 Vercel Cron，此处仅用于展示/手动控制）
       const schedulerResponse = await fetch('/api/croner-scheduler');
       if (schedulerResponse.ok) {
         const schedulerData = await schedulerResponse.json();
         if (schedulerData.success) {
           setSchedulerStatus(schedulerData.data.cronScheduler);
           setSchedulerRunning(schedulerData.data.cronScheduler.isRunning);
-          setTasks(schedulerData.data.tasks);
-          
-          // 更新运行中的任务
-          const running = new Set<string>();
-          schedulerData.data.tasks.forEach((task: TaskDefinition) => {
-            if (task.isCurrentlyRunning) {
-              running.add(task.id);
-            }
-          });
-          setRunningTasks(running);
         }
       }
       
@@ -395,6 +408,10 @@ export default function TaskMonitorPage() {
     return cronExpression;
   };
 
+  const failedExecutionsCount = recentExecutions.filter(
+    (exec) => exec.status === 'failed'
+  ).length;
+
   // 显示认证加载状态
   if (authLoading) {
     return (
@@ -425,7 +442,7 @@ export default function TaskMonitorPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-6 sm:px-6 sm:py-8 lg:max-w-5xl">
+    <div className="container mx-auto px-4 py-6 sm:px-6 sm:py-8">
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
           <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{t("monitorTitle")}</h1>
@@ -471,7 +488,7 @@ export default function TaskMonitorPage() {
                 {t("scheduledTasks", { count: schedulerStatus?.taskCount || 0 })}
               </span>
               <span className="text-sm text-muted-foreground">
-                {t("runningTasks", { count: schedulerStatus?.runningTasks?.length ?? 0 })}
+                {t("runningTasks", { count: runningTasks.size })}
               </span>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -506,6 +523,105 @@ export default function TaskMonitorPage() {
               </Button>
             </div>
           </div>
+          {!schedulerRunning && (
+            <p className="mt-3 flex items-center gap-1 text-xs text-muted-foreground">
+              <Info className="h-3.5 w-3.5 shrink-0" />
+              {t("vercelCronNote")}
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* 最近执行记录 / 失败任务 */}
+      <Card className="mb-6">
+        <CardHeader className="pb-3 sm:pb-6">
+          <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+            <AlertTriangle className="h-5 w-5 shrink-0" />
+            {t("recentExecutionsTitle")}
+          </CardTitle>
+          <CardDescription>
+            {t("recentExecutionsDesc")}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {recentExecutions.length === 0 ? (
+            <div className="flex min-h-[6rem] items-center justify-center">
+              <p className="text-sm text-muted-foreground sm:text-base">{t("noExecutions")}</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {recentExecutions.slice(0, 15).map((execution) => {
+                const isFailed = execution.status === 'failed';
+                const isRunningExec = execution.status === 'running' || execution.status === 'pending';
+                return (
+                  <div
+                    key={execution.id}
+                    className={`flex flex-col gap-2 rounded-lg border p-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4 ${
+                      isFailed
+                        ? 'border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950/30'
+                        : isRunningExec
+                          ? 'border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/30'
+                          : ''
+                    }`}
+                  >
+                    <div className="flex min-w-0 flex-1 items-start gap-3">
+                      <span className="mt-0.5 shrink-0">{getStatusIcon(execution.status)}</span>
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="text-sm font-medium">{execution.taskName || execution.taskDefinitionId}</p>
+                          <span className="text-xs text-muted-foreground">
+                            {execution.triggeredBy === 'system' ? t("triggeredBySystem") : t("triggeredByManual")}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {formatDate(execution.startedAt || execution.createdAt)}
+                          </span>
+                        </div>
+                        <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                          <span>{execution.status}</span>
+                          <span>·</span>
+                          <span>{t("duration")}: {formatDuration(execution.duration)}</span>
+                        </div>
+                        {execution.error && (
+                          <p className="mt-1 line-clamp-2 w-full break-words text-xs text-red-600 dark:text-red-400">
+                            {execution.error}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2">
+                      {isFailed && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => executeTask(execution.taskDefinitionId)}
+                          className="shrink-0"
+                        >
+                          <RotateCcw className="h-4 w-4 sm:mr-2" />
+                          {t("retry")}
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          {failedExecutionsCount > 0 && (
+            <div className="mt-4 flex flex-col gap-2 border-t pt-4 sm:flex-row sm:items-center sm:justify-between">
+              <p className="flex items-center gap-1 text-sm font-medium text-red-600 dark:text-red-400">
+                <AlertTriangle className="h-4 w-4 shrink-0" />
+                {t("failedExecutions", { count: failedExecutionsCount })}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Button variant="outline" size="sm" onClick={() => router.push('/protected/readme-sync-failures')} className="shrink-0">
+                  {t("viewReadmeFailures")}
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => router.push('/protected/project-sync-failures')} className="shrink-0">
+                  {t("viewProjectFailures")}
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 

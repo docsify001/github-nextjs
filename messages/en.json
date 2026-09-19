@@ -251,6 +251,12 @@
     "schedulerTitle": "Scheduler status",
     "schedulerRunning": "Running",
     "schedulerStopped": "Stopped",
+    "vercelCronNote": "On production, tasks run via Vercel Cron (once daily at 02:00 Beijing time). Running status shown here is read from the database and reflects real executions.",
+    "recentExecutionsTitle": "Recent executions & failed tasks",
+    "recentExecutionsDesc": "Shows the latest 30 executions. Failed tasks can be retried here, or handled in the README / project sync failure pages.",
+    "failedExecutions": "{count} failed executions",
+    "viewReadmeFailures": "View README sync failures",
+    "viewProjectFailures": "View project sync failures",
     "scheduledTasks": "Scheduled tasks: {count}",
     "runningTasks": "Running tasks: {count}",
     "stopScheduler": "Stop scheduler",
@@ -278,7 +284,7 @@
     "cronMonthly3": "1st of every month at 3:00 AM",
     "cronWeekly3": "Every Monday at 3:00 AM",
     "cronDaily4": "Every day at 4:00 AM",
-    "retry": "重试"
+    "retry": "Retry"
   },
   "SyncFailures": {
     "projectTitle": "Project sync failures",
