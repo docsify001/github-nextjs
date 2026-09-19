@@ -19,7 +19,7 @@ export async function generateMetadata(): Promise<Metadata> {
     metadataBase: new URL(defaultUrl),
     title: {
       default: t("title"),
-      template: t("titleTemplate"),
+      template: t.raw("titleTemplate"),
     },
     description: t("description"),
   };

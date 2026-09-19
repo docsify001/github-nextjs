@@ -2,7 +2,7 @@
   "Metadata": {
     "title": "GitHub Project Hub",
     "description": "GitHub 开源项目数据聚合与展示平台，支持 MCP / Skill 协作同步",
-    "titleTemplate": "{title} | GitHub 项目中心"
+    "titleTemplate": "{title} | GitHub Project Hub"
   },
   "Common": {
     "loading": "Loading...",
