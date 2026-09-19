@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,6 +14,7 @@ interface AuthGuardProps {
 }
 
 export function AuthGuard({ children, fallback }: AuthGuardProps) {
+  const t = useTranslations('AuthShell');
   const { user, loading, error } = useAuth();
   const router = useRouter();
 
@@ -28,7 +30,7 @@ export function AuthGuard({ children, fallback }: AuthGuardProps) {
       <div className="flex items-center justify-center min-h-screen">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="h-8 w-8 animate-spin" />
-          <p className="text-lg">验证认证状态...</p>
+          <p className="text-lg">{t('checkingStatus')}</p>
         </div>
       </div>
     );
@@ -42,28 +44,28 @@ export function AuthGuard({ children, fallback }: AuthGuardProps) {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-red-600">
               <AlertCircle className="h-5 w-5" />
-              认证错误
+              {t('authErrorTitle')}
             </CardTitle>
             <CardDescription>
-              认证过程中发生了错误，请重新登录
+              {t('authErrorDesc')}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               <p className="text-sm text-red-600">{error}</p>
               <div className="flex gap-2">
-                <Button 
+                <Button
                   onClick={() => router.push('/auth/login')}
                   className="flex-1"
                 >
-                  重新登录
+                  {t('retryLogin')}
                 </Button>
-                <Button 
+                <Button
                   variant="outline"
                   onClick={() => window.location.reload()}
                   className="flex-1"
                 >
-                  刷新页面
+                  {t('reloadPage')}
                 </Button>
               </div>
             </div>
@@ -78,29 +80,29 @@ export function AuthGuard({ children, fallback }: AuthGuardProps) {
     if (fallback) {
       return <>{fallback}</>;
     }
-    
+
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Card className="w-full max-w-md">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <AlertCircle className="h-5 w-5 text-yellow-600" />
-              需要登录
+              {t('needLoginTitle')}
             </CardTitle>
             <CardDescription>
-              您需要登录才能访问此页面
+              {t('needLoginDesc')}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               <p className="text-sm text-gray-600">
-                此页面需要用户认证。请先登录您的账户。
+                {t('needLoginBody')}
               </p>
-              <Button 
+              <Button
                 onClick={() => router.push('/auth/login')}
                 className="w-full"
               >
-                前往登录
+                {t('goLogin')}
               </Button>
             </div>
           </CardContent>
@@ -111,4 +113,4 @@ export function AuthGuard({ children, fallback }: AuthGuardProps) {
 
   // 已登录，显示内容
   return <>{children}</>;
-} 
+}

@@ -7,6 +7,7 @@ import { z } from "zod";
 
 import { db } from "../database";
 import * as schema from "../schema";
+import { parseGithubRepoUrl } from "@/lib/github/repo-url";
 import { generateProjectDefaultSlug } from "./project-helpers";
 
 export type CreateProjectType = "skill" | "application" | "client" | "server" | "persona";
@@ -14,11 +15,12 @@ export type CreateProjectType = "skill" | "application" | "client" | "server" | 
 const PROJECT_ALREADY_EXISTS_MSG = "项目已经存在";
 
 export async function createProject(gitHubURL: string, type: CreateProjectType) {
-  const fullName = gitHubURL.split("/").slice(-2).join("/");
-  const [owner, name] = fullName.split("/");
-  if (!owner || !name) {
-    throw new Error("无效的 GitHub 仓库 URL");
+  // 支持 owner/repo 与完整 GitHub URL（自动去除 .git / 尾部斜杠等）
+  const parsed = parseGithubRepoUrl(gitHubURL);
+  if (!parsed) {
+    throw new Error("无效的 GitHub 仓库地址，请使用 owner/repo 或完整的 GitHub 链接");
   }
+  const { owner, name, fullName } = parsed;
 
   const repoData = await fetchGitHubRepoData(fullName);
 

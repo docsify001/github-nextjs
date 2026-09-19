@@ -40,15 +40,15 @@ export function TagPicker({ allTags, values, onChange }: Props) {
           aria-expanded={open}
           className="w-[200px] justify-between"
         >
-          Add tag
+          添加标签
           <PlusIcon className="ml-2 size-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[200px] p-0">
         <Command>
-          <CommandInput placeholder="Search..." />
+          <CommandInput placeholder="搜索..." />
           <CommandList>
-            <CommandEmpty>No tag found.</CommandEmpty>
+            <CommandEmpty>未找到标签。</CommandEmpty>
             <CommandGroup>
               {allTags.map((tag) => (
                 <CommandItem

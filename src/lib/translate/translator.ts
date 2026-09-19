@@ -62,7 +62,7 @@ ${text}
 ${text}
 
 语言代码：`,
-        maxTokens: 10,
+        maxOutputTokens: 10,
         temperature: 0,
       });
 
@@ -144,7 +144,7 @@ ${readmeContent}
 7. 保持徽章（badge）的格式不变
 
 翻译结果：`,
-        maxTokens: 8000,
+        maxOutputTokens: 8000,
         temperature: 0.2,
       });
 
@@ -184,7 +184,7 @@ ${releaseDescription}
 6. 保持代码示例格式不变
 
 翻译结果：`,
-        maxTokens: 4000,
+        maxOutputTokens: 4000,
         temperature: 0.3,
       });
 

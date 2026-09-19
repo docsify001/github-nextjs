@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 
 import type { findProjects } from "@/drizzle/projects";
 import { ProjectLogo } from "@/components/projects/project-logo";
@@ -18,18 +19,20 @@ type Props = {
   projects: Awaited<ReturnType<typeof findProjects>>;
 };
 
-export function ProjectTable({ projects }: Props) {
+export async function ProjectTable({ projects }: Props) {
+  const t = await getTranslations("Projects");
+
   return (
     <Table className="min-w-[640px]">
       <TableHeader>
         <TableRow>
-          <TableHead className="w-[80px] sm:w-[100px] shrink-0">Logo</TableHead>
-          <TableHead className="min-w-[180px]">项目名称</TableHead>
-          <TableHead className="whitespace-nowrap w-[100px] hidden md:table-cell">添加时间</TableHead>
-          <TableHead className="min-w-[120px] hidden sm:table-cell">GitHub</TableHead>
-          <TableHead className="min-w-[80px] hidden lg:table-cell">Packages</TableHead>
-          <TableHead className="text-right w-[70px] shrink-0">Stars</TableHead>
-          <TableHead className="text-center w-[56px] shrink-0">操作</TableHead>
+          <TableHead className="w-[80px] sm:w-[100px] shrink-0">{t("colIcon")}</TableHead>
+          <TableHead className="min-w-[180px]">{t("colName")}</TableHead>
+          <TableHead className="whitespace-nowrap w-[100px] hidden md:table-cell">{t("colCreatedAt")}</TableHead>
+          <TableHead className="min-w-[120px] hidden sm:table-cell">{t("colGithub")}</TableHead>
+          <TableHead className="min-w-[80px] hidden lg:table-cell">{t("colPackages")}</TableHead>
+          <TableHead className="text-right w-[70px] shrink-0">{t("colStars")}</TableHead>
+          <TableHead className="text-center w-[56px] shrink-0">{t("colActions")}</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -69,10 +72,10 @@ export function ProjectTable({ projects }: Props) {
             <TableCell className="hidden sm:table-cell min-w-0">
               <div className="flex flex-col gap-1">
                 <span className="truncate max-w-[180px]" title={project.repo?.full_name ?? undefined}>
-                  {project.repo?.full_name || "No repo"}
+                  {project.repo?.full_name || t("noRepoInfo")}
                 </span>
                 {project.repo?.archived && (
-                  <Badge variant="destructive" className="w-fit">Archived</Badge>
+                  <Badge variant="destructive" className="w-fit">{t("archived")}</Badge>
                 )}
               </div>
             </TableCell>

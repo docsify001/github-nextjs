@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 import { createClient } from '@/lib/supabase/client';
 import { User } from '@supabase/supabase-js';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 
 interface AuthContextType {
   user: User | null;
@@ -16,6 +17,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const t = useTranslations('AuthShell');
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -36,7 +38,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(user);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : '认证验证失败');
+      setError(err instanceof Error ? err.message : t('authVerifyFailed'));
       setUser(null);
     } finally {
       setLoading(false);
@@ -49,7 +51,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(null);
       router.push('/auth/login');
     } catch (err) {
-      setError(err instanceof Error ? err.message : '退出登录失败');
+      setError(err instanceof Error ? err.message : t('signOutFailed'));
     }
   };
 

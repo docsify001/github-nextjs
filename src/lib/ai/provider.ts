@@ -25,8 +25,6 @@ export const createOpenAIInstance = () => {
   const openai = createOpenAI({
     apiKey: DEFAULT_CONFIG.openai.apiKey,
     baseURL: DEFAULT_CONFIG.openai.baseURL,
-    // custom settings, e.g.
-    compatibility: 'strict', // strict mode, enable when using the OpenAI API
   });
-  return openai(DEFAULT_CONFIG.openai.model)
+  return openai.chat(DEFAULT_CONFIG.openai.model)
 };

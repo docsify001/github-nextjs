@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/drizzle/database';
 import { createProject, type CreateProjectType } from '@/drizzle/projects/create';
+import { parseGithubRepoUrl } from '@/lib/github/repo-url';
 import { createConsola } from 'consola';
 import { eq, and } from 'drizzle-orm';
 import { schema } from '@/drizzle/database';
@@ -200,16 +201,12 @@ export async function POST(request: NextRequest) {
 
 function validateAndCleanGitHubUrl(url: string): string | null {
   try {
-    // 去掉末尾的 .git
-    const cleanedUrl = url.replace(/\.git$/, '');
-    
-    // 验证是否是GitHub URL
-    const githubUrlPattern = /^https?:\/\/github\.com\/[^\/]+\/[^\/]+$/;
-    if (!githubUrlPattern.test(cleanedUrl)) {
+    // 支持 owner/repo 与完整 GitHub URL，自动去除 .git / 尾部斜杠 / 多余路径
+    const parsed = parseGithubRepoUrl(url);
+    if (!parsed) {
       return null;
     }
-    
-    return cleanedUrl;
+    return parsed.url;
   } catch (error) {
     logger.error('Error validating and cleaning GitHub URL:', error);
     return null;
