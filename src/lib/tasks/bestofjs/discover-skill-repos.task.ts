@@ -11,7 +11,7 @@ import { nanoid } from "nanoid";
 import { z } from "zod";
 import { and, eq } from "drizzle-orm";
 import slugify from "slugify";
-import { ProxyAgent } from "proxy-agent";
+import { ProxyAgent } from "undici";
 import pThrottle from "p-throttle";
 
 import { createTask } from "@/lib/tasks/task-runner";
@@ -75,7 +75,7 @@ function getProxyAgent(): ProxyAgent | null {
     process.env.HTTP_PROXY ||
     process.env.http_proxy;
   if (proxy) {
-    if (!proxyAgent) proxyAgent = new ProxyAgent();
+    if (!proxyAgent) proxyAgent = new ProxyAgent(proxy);
     return proxyAgent;
   }
   return null;

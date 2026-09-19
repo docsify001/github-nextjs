@@ -11,6 +11,7 @@ import { ReadmeViewer } from "@/components/projects/readme-viewer";
 import { projectService } from "@/lib/db";
 import { db, schema } from "@/drizzle/database";
 import { createClient } from "@/lib/supabase/server";
+import { BackButton } from "@/components/back-button";
 import { ViewProjectPackages } from "./view-packages";
 import { ViewProject } from "./view-project";
 import { ViewProjectSkills } from "./view-project-skills";
@@ -101,6 +102,7 @@ export default async function ViewProjectPage(props: PageProps) {
 
   return (
     <div className="flex flex-col gap-6">
+      <BackButton href="/protected/projects" />
       <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-start">
         <div className="flex min-w-0 items-center gap-4">
           <ProjectLogo project={project} size={100} />

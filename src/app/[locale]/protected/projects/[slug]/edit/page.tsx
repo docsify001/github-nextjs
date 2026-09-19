@@ -6,6 +6,7 @@ import { ViewTags } from "../view-tags";
 import { ProjectForm } from "./project-form";
 import { projectService } from "@/lib/db";
 import { createClient } from "@/lib/supabase/server";
+import { BackButton } from "@/components/back-button";
 
 type PageProps = {
   params: Promise<{
@@ -38,6 +39,7 @@ export default async function EditProjectPage(props: PageProps) {
 
   return (
     <div className="flex flex-col gap-6">
+      <BackButton href={`/protected/projects/${slug}`} />
       <div className="flex items-center gap-4">
         <ProjectLogo project={project} size={100} />
         <div className="flex flex-col gap-4">
